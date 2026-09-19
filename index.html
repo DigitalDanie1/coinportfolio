@@ -226,6 +226,7 @@ tr{animation:fadeIn .25s ease both}
       <span class="hero-meta" id="hero-meta"></span>
 
     </div>
+    <div class="goal-bar" id="goal-bar" aria-live="polite"></div>
     <div class="household-rank" id="household-rank" aria-live="polite"></div>
     <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
   </div>
@@ -544,6 +545,27 @@ function krHouseholdRank(krwManwon) {
 }
 function formatTop(top) {
   return top < 1 ? top.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') : top < 10 ? top.toFixed(1) : Math.round(top);
+}
+const GOAL_KRW = 100e8; // 100억
+function renderGoal(totalUsd) {
+  const box = document.getElementById('goal-bar');
+  if (!box) return;
+  const rate = marketPulse?.usdKrw?.rate;
+  if (!rate || !(totalUsd > 0)) { box.innerHTML = ''; return; }
+  const krw = totalUsd * rate;
+  const pct = krw / GOAL_KRW * 100;
+  const remain = Math.max(GOAL_KRW - krw, 0);
+  const eok = n => (n / 1e8).toFixed(n / 1e8 >= 10 ? 0 : 2) + '억';
+  const done = pct >= 100;
+  const shown = pct < 0.01 && pct > 0 ? '0.01' : pct < 1 ? pct.toFixed(2) : pct < 10 ? pct.toFixed(1) : pct.toFixed(0);
+  box.innerHTML = `<div class="goal-head">
+      <span class="goal-title">100억 달성률</span>
+      <b class="goal-pct${done ? ' done' : ''}">${done ? '달성' : shown + '%'}</b>
+    </div>
+    <div class="goal-track" role="progressbar" aria-valuenow="${pct.toFixed(2)}" aria-valuemin="0" aria-valuemax="100" aria-label="100억 달성률">
+      <i style="width:${Math.min(pct, 100).toFixed(3)}%"></i>
+    </div>
+    <div class="goal-foot"><span>${escapeHTML(eok(krw))}</span><span>${done ? '목표 도달' : '남은 금액 ' + escapeHTML(eok(remain))}</span></div>`;
 }
 function renderHouseholdRank(totalUsd) {
   const box = document.getElementById('household-rank');
@@ -941,6 +963,7 @@ function renderHero() {
   }
 
   document.getElementById('hero-meta').innerHTML = `<b>${coins.length}</b> 종목 · <span style="color:var(--green)">${up}▲</span> <span style="color:var(--red)">${dn}▼</span>`;
+  renderGoal(totalVal);
   renderHouseholdRank(totalVal);
 
   document.getElementById('cnt-farming').textContent = farming.length;

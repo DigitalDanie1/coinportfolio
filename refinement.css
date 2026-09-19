@@ -435,3 +435,15 @@ tbody tr:hover td{background:var(--row-hover)}
 .rank-line b{color:var(--text-1);font-weight:650;font-variant-numeric:tabular-nums}
 .rank-line .rank-top{color:var(--main)}
 .rank-note{display:block;font-size:.73rem;color:var(--text-3);margin-top:4px}
+
+/* Progress toward the 100억 goal. */
+.goal-bar{margin-top:20px;max-width:440px}
+.goal-bar:empty{display:none}
+.goal-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.goal-title{font-size:.8rem;font-weight:600;color:var(--text-2)}
+.goal-pct{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:1.05rem;font-weight:680;letter-spacing:-.02em;color:var(--main)}
+.goal-pct.done{color:var(--green)}
+.goal-track{position:relative;height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:9px;border:1px solid var(--border-h)}
+.goal-track i{display:block;height:100%;border-radius:999px;background:var(--main);transition:width .5s ease}
+.goal-foot{display:flex;justify-content:space-between;gap:12px;margin-top:7px;font-size:.75rem;font-weight:550;color:var(--text-3);font-variant-numeric:tabular-nums}
+@media(prefers-reduced-motion:reduce){.goal-track i{transition:none}}
