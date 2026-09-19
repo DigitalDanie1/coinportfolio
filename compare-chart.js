@@ -21,7 +21,7 @@ function gatherCoins(){
   const out=[];
   for(const coin of coins){
     const d=coin.gecko?mkt[coin.gecko]:null;
-    const raw=d?.collectedHistory?.map(p=>p.price)||d?.sparkline_in_7d?.price;
+    const raw=priceSeries(d);
     if(!raw||raw.length<10){
       out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,norm:null,last:0,noData:true});
       continue;

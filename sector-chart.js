@@ -27,7 +27,7 @@ function build(){
   for(const[cat,m]of Object.entries(CATS)) groups[cat]={...m,coins:[],series:[],avg:[],change:0};
   for(const coin of coins){
     const d=coin.gecko?mkt[coin.gecko]:null;
-    const raw=d?.collectedHistory?.map(p=>p.price)||d?.sparkline_in_7d?.price;
+    const raw=priceSeries(d);
     if(!raw||raw.length<10) continue;
     const cat=coin.cat; if(!groups[cat]) continue;
     const base=raw[0]; if(!base||base<=0) continue;

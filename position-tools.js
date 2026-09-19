@@ -4,7 +4,7 @@ function marketLogo(coin,data) {
   return `<span class="asset-symbol" style="border-color:${catColor(coin.cat)}"><span>${escapeHTML(coin.ticker.slice(0,3))}</span>${src ? `<img src="${escapeHTML(src)}" alt="${escapeHTML(coin.name)} 로고" width="32" height="32" loading="lazy" decoding="async" onerror="this.remove()">` : ''}</span>`;
 }
 function marketChart(coin,data) {
-  const prices = data?.collectedHistory?.map(p=>p.price)||data?.sparkline_in_7d?.price;
+  const prices = priceSeries(data);
   const period=data?.collectedHistory?"수집 기록":"7일";
   const chart = sparkSVG(prices, 'row-'+coin.id, 44, 128);
   const change=data?.price_change_percentage_7d_in_currency;

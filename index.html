@@ -404,6 +404,12 @@ function setHolding(id, qty, avgPrice, manualPrice, reason) {
 }
 function coinsOf(cat) { return coins.filter(c => c.cat === cat); }
 function genId(ticker) { return ticker.toLowerCase() + '_' + Math.random().toString(36).slice(2,6); }
+// A DEX pair carries both a provider series and whatever this session collected; take the longer.
+function priceSeries(d) {
+  const collected=d?.collectedHistory?.map(p=>p.price)||[];
+  const provider=d?.sparkline_in_7d?.price||[];
+  return provider.length>collected.length?provider:collected;
+}
 function parseGeckoInput(val) {
   if (!val) return null;
   val = val.trim();
@@ -649,7 +655,7 @@ function openDetail(id) {
   const logo = d?.image ? `<img src="${escapeHTML(d.image)}" alt="" onerror="this.remove()">` : '';
   const price = has ? d.current_price : null;
 
-  const chartPrices=d?.collectedHistory?.map(p=>p.price)||d?.sparkline_in_7d?.price;
+  const chartPrices=priceSeries(d);
   const spark = `<a id="detail-chart-link" class="detail-chart-link" target="_blank" rel="noopener noreferrer" aria-label="${escapeHTML(coin.ticker)} 외부 차트 열기" aria-disabled="true">
     ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m'):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
     <span id="detail-chart-status" class="detail-chart-status">${coin.cat==='stocks'?'TradingView':'DEX Screener'} 연결 확인 중…</span>
