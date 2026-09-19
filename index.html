@@ -729,12 +729,22 @@ function sparkSVG(prices, uid, H=50, W=200, marks=[]) {
   const ar='M'+co[0].join(',')+' '+co.slice(1).map(c=>'L'+c.join(',')).join(' ')+` L${W},${H} L0,${H} Z`;
   const up=pts[pts.length-1]>=pts[0];
   const hex=up?'#22c55e':'#ef4444';
+  // Shade from the entry to the price line, so the gap that is the gain or loss is the shape itself.
+  const entry=shown.find(m=>m.entry);
+  let entryBand='';
+  if(entry){
+    const ey=P+eH-((entry.price-mn)/rng)*eH;
+    const gain=pts[pts.length-1]>=entry.price;
+    const band='M'+co[0].join(',')+' '+co.slice(1).map(c=>'L'+c.join(',')).join(' ')+` L${W},${ey.toFixed(1)} L0,${ey.toFixed(1)} Z`;
+    entryBand=`<path d="${band}" fill="${gain?'var(--green)':'var(--red)'}" opacity=".16"/>`;
+  }
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     <defs><linearGradient id="g${uid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${hex}" stop-opacity=".2"/>
       <stop offset="100%" stop-color="${hex}" stop-opacity="0"/>
     </linearGradient></defs>
     <path d="${ar}" fill="url(#g${uid})"/>
+    ${entryBand}
     <polyline points="${ln}" fill="none" stroke="${hex}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${shown.map(m=>{
       const y=(P+eH-((m.price-mn)/rng)*eH).toFixed(1);
@@ -747,14 +757,25 @@ function positionMarks(id) {
   const h = holdings[id];
   if (!h) return [];
   const marks = [];
-  if (h.qty > 0 && h.avgPrice > 0) marks.push({ price: h.avgPrice, label: '매수', color: 'var(--text-1)' });
+  if (h.qty > 0 && h.avgPrice > 0) marks.push({ price: h.avgPrice, label: '매수', color: 'var(--text-1)', entry: true });
   if (h.targetPrice > 0) marks.push({ price: h.targetPrice, label: '매도', color: 'var(--green)' });
   return marks;
 }
-function sparkModal(prices, uid, marks=[]) {
+function positionPnL(id, current) {
+  const h = holdings[id];
+  if (!h || !(h.qty > 0) || !(h.avgPrice > 0) || !(current > 0)) return null;
+  const cost = h.qty * h.avgPrice;
+  return { amount: h.qty * current - cost, pct: (current / h.avgPrice - 1) * 100 };
+}
+function sparkModal(prices, uid, marks=[], pnl=null) {
   if(!prices?.length) return '<div class="modal-spark-empty">차트 데이터 없음</div>';
-  const legend = marks.length ? `<div class="mark-legend">${marks.map(m =>
-    `<span class="mark-item"><i style="background:${m.color}"></i>${escapeHTML(m.label)} ${fP(m.price)}</span>`).join('')}</div>` : '';
+  const items = marks.map(m =>
+    `<span class="mark-item"><i style="background:${m.color}"></i>${escapeHTML(m.label)} ${fP(m.price)}</span>`);
+  if (pnl) {
+    const cls = pnl.amount >= 0 ? 'up' : 'down';
+    items.push(`<span class="mark-item mark-pnl ${cls}">손익 ${signedMoney(pnl.amount)} · ${fPct(pnl.pct)}</span>`);
+  }
+  const legend = items.length ? `<div class="mark-legend">${items.join('')}</div>` : '';
   return `<div class="modal-spark">${sparkSVG(prices, uid, 100, 400, marks)}</div>${legend}`;
 }
 
@@ -911,7 +932,7 @@ function openDetail(id) {
 
   const chartPrices=priceSeries(d);
   const spark = `<a id="detail-chart-link" class="detail-chart-link" target="_blank" rel="noopener noreferrer" aria-label="${escapeHTML(coin.ticker)} 외부 차트 열기" aria-disabled="true">
-    ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m',positionMarks(id)):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
+    ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m',positionMarks(id),positionPnL(id,price)):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
     <span id="detail-chart-status" class="detail-chart-status">차트 연결 확인 중…</span>
   </a>`;
 
