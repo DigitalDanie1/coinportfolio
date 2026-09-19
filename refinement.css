@@ -174,7 +174,14 @@ tbody tr:focus-visible{outline-offset:-3px;background:var(--surface-2)}
 .chart-viewer{width:100%;height:min(65dvh,620px);min-height:320px;display:grid;place-items:center;background:var(--bg);border:1px solid var(--border-h);border-radius:8px;overflow:hidden;color:var(--text-3);font-size:.82rem}
 .chart-viewer iframe{width:100%;height:100%;border:0;display:block}
 #chart-caption{font-size:.68rem;overflow-wrap:anywhere;margin:12px 0 0}
-@media(max-width:640px){.scenario-panel{padding:17px 15px}.scenario-header{display:block}#scenario-status{display:block;margin-top:9px}#market-scenario{padding:13px;font-size:.82rem;min-height:210px}.scenario-footer{font-size:.65rem}.modal:has(.chart-dialog){width:100%;padding:17px 12px;max-height:94dvh}.chart-controls{gap:8px}.chart-controls a{margin-left:0}.chart-viewer{height:58dvh;min-height:280px}}
+.chart-manual{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.chart-manual label{font-size:.76rem;color:var(--text-3);flex-shrink:0}
+.chart-manual input{flex:1;min-width:220px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border-h);border-radius:8px;padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:.76rem}
+.chart-manual input:focus{outline:none;border-color:var(--main)}
+.chart-manual .btn{flex-shrink:0}
+#chart-manual-msg{font-size:.7rem;margin:0 0 14px}
+#chart-manual-msg.chart-manual-err{color:var(--red)}
+@media(max-width:640px){.scenario-panel{padding:17px 15px}.scenario-header{display:block}#scenario-status{display:block;margin-top:9px}#market-scenario{padding:13px;font-size:.82rem;min-height:210px}.scenario-footer{font-size:.65rem}.modal:has(.chart-dialog){width:100%;padding:17px 12px;max-height:94dvh}.chart-controls{gap:8px}.chart-controls a{margin-left:0}.chart-viewer{height:58dvh;min-height:280px}.chart-manual{gap:8px}.chart-manual input{min-width:0;flex-basis:100%}}
 .reflection-panel{border:1px solid var(--border-h);border-radius:12px;background:var(--surface);margin:0 0 30px}
 .reflection-panel summary{list-style:none;cursor:pointer;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .reflection-panel summary::-webkit-details-marker{display:none}

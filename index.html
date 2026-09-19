@@ -745,6 +745,7 @@ function openEdit(id) {
       </div>
     </div>
     <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="e-gecko" value="${coin.gecko?.startsWith('auto:')?'':coin.gecko||''}" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
+    <div class="field"><label>차트 소스 (선택)</label><input type="text" id="e-chart" value="${escapeHTML(coin.chartSrc||'')}" placeholder="BINANCE:BTCUSDT 또는 dexscreener.com 링크"></div>
     <div class="modal-actions">
       <button class="btn-save" onclick="submitEdit('${id}')">저장</button>
       <button class="btn-del" onclick="openDetail('${id}')">취소</button>
@@ -760,9 +761,11 @@ function submitEdit(id) {
   const note=document.getElementById('e-note').value.trim()||'';
   const cat=document.querySelector('input[name="e-cat"]:checked')?.value||'etc';
   const gecko=parseGeckoInput(document.getElementById('e-gecko').value);
+  const chartSrc=(document.getElementById('e-chart')?.value||'').trim();
+  if(chartSrc&&!parseChartInput(chartSrc)){alert('차트 소스 형식이 올바르지 않다.\n예) BINANCE:BTCUSDT\n예) https://dexscreener.com/solana/<페어주소>');return;}
   const oldCoin=coins.find(c=>c.id===id);
   const geckoChanged=gecko!==oldCoin?.gecko;
-  updateCoin(id,{ticker,name,note,cat,gecko,providerId:geckoChanged?gecko:oldCoin?.providerId});
+  updateCoin(id,{ticker,name,note,cat,gecko,chartSrc,providerId:geckoChanged?gecko:oldCoin?.providerId});
   closeModal();
   renderAll();
   loadData();

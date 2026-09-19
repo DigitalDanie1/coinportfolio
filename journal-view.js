@@ -13,6 +13,53 @@ function saveScenario(text){
   if(!ok)document.getElementById('scenario-status').textContent='저장 실패 · 작성 내용을 복사해 보관하세요';
 }
 let chartRequest=0,chartChoices=[];
+function tvChartSource(symbol){
+  const s=String(symbol||'').trim().toUpperCase().replace(/\s+/g,'');
+  if(!/^[A-Z0-9_]+:[A-Z0-9_.!-]+$/.test(s))return null;
+  return {type:'tradingview',symbol:s,label:s,url:'https://www.tradingview.com/chart/?symbol='+encodeURIComponent(s)};
+}
+// Accepts a TradingView symbol (BINANCE:BTCUSDT), a TradingView link, or a DEX Screener pair link.
+function parseChartInput(value){
+  const raw=String(value||'').trim();
+  if(!raw)return null;
+  if(/^[a-z]+:\/\//i.test(raw)||/^(www\.)?(dexscreener\.com|tradingview\.com)/i.test(raw)){
+    let url;try{url=new URL(/^[a-z]+:\/\//i.test(raw)?raw:'https://'+raw);}catch{return null;}
+    if(url.protocol!=='https:'&&url.protocol!=='http:')return null;
+    const host=url.hostname.replace(/^www\./,'').toLowerCase();
+    if(host==='dexscreener.com'){
+      const seg=url.pathname.split('/').filter(Boolean);
+      if(seg.length<2||!/^[a-z0-9-]{1,40}$/.test(seg[0])||!/^[a-zA-Z0-9]{1,100}$/.test(seg[1]))return null;
+      return {type:'dex',chain:seg[0],pair:seg[1],label:`${seg[0]} · ${seg[1].slice(0,8)}…`,url:`https://dexscreener.com/${seg[0]}/${seg[1]}`};
+    }
+    if(host==='tradingview.com'){
+      const query=url.searchParams.get('symbol');
+      if(query)return tvChartSource(query);
+      // TradingView symbol pages spell the pair as EXCHANGE-TICKER rather than EXCHANGE:TICKER.
+      const slug=url.pathname.match(/\/symbols\/([^/]+)/)?.[1];
+      return slug?tvChartSource(decodeURIComponent(slug).replace('-',':')):null;
+    }
+    return null;
+  }
+  return tvChartSource(raw);
+}
+function manualChartSource(coin){
+  const src=parseChartInput(coin?.chartSrc);
+  if(src)src.label='직접 입력 · '+src.label;
+  return src;
+}
+function applyManualChart(id){
+  const coin=coins.find(x=>x.id===id);if(!coin)return;
+  const raw=(document.getElementById('chart-manual-input')?.value||'').trim();
+  const msg=document.getElementById('chart-manual-msg');
+  if(!raw){updateCoin(id,{chartSrc:''});openMarketChart(id);return;}
+  if(!parseChartInput(raw)){
+    if(msg){msg.textContent='인식할 수 없는 형식이다. 예: BINANCE:BTCUSDT · https://dexscreener.com/solana/<페어주소>';msg.classList.add('chart-manual-err');}
+    return;
+  }
+  updateCoin(id,{chartSrc:raw});
+  openMarketChart(id);
+}
+function clearManualChart(id){updateCoin(id,{chartSrc:''});openMarketChart(id);}
 function chartFrameURL(source){
   if(source.type==='tradingview'&&/^[A-Z0-9_]+:[A-Z0-9_.!-]+$/i.test(source.symbol)){
     // Same iframe URL/settings format emitted by TradingView's official embed script.
@@ -39,20 +86,28 @@ function selectChart(index){
 async function openMarketChart(id){
   const coin=coins.find(x=>x.id===id);if(!coin)return;
   const request=++chartRequest;chartChoices=[];
-  document.getElementById('modal-body').innerHTML=`<div class="chart-dialog"><div class="modal-head"><div class="minfo"><div class="ticker">${escapeHTML(coin.ticker)} · 차트</div><div class="name">${escapeHTML(coin.name)}</div></div><button class="modal-close" aria-label="닫기" onclick="closeModal()">×</button></div><div class="chart-controls"><label for="chart-source-select">차트 소스</label><select id="chart-source-select" onchange="selectChart(this.value)" disabled><option>거래소·DEX 페어 확인 중…</option></select><a id="chart-external" class="btn" target="_blank" rel="noopener noreferrer" hidden>외부에서 열기 ↗</a></div><div id="chart-viewer" class="chart-viewer"><p>정확한 종목과 거래 페어를 연결하고 있습니다…</p></div><p id="chart-caption" class="form-help">차트가 표시되지 않으면 외부에서 열기 버튼을 이용하세요.</p></div>`;
+  const manual=manualChartSource(coin);
+  document.getElementById('modal-body').innerHTML=`<div class="chart-dialog"><div class="modal-head"><div class="minfo"><div class="ticker">${escapeHTML(coin.ticker)} · 차트</div><div class="name">${escapeHTML(coin.name)}</div></div><button class="modal-close" aria-label="닫기" onclick="closeModal()">×</button></div><div class="chart-controls"><label for="chart-source-select">차트 소스</label><select id="chart-source-select" onchange="selectChart(this.value)" disabled><option>거래소·DEX 페어 확인 중…</option></select><a id="chart-external" class="btn" target="_blank" rel="noopener noreferrer" hidden>외부에서 열기 ↗</a></div><div class="chart-manual"><label for="chart-manual-input">직접 입력</label><input type="text" id="chart-manual-input" value="${escapeHTML(coin.chartSrc||'')}" placeholder="BINANCE:BTCUSDT 또는 dexscreener.com 링크" onkeydown="if(event.key==='Enter')applyManualChart('${id}')"><button class="btn" onclick="applyManualChart('${id}')">적용</button>${coin.chartSrc?`<button class="btn" onclick="clearManualChart('${id}')">지우기</button>`:''}</div><p id="chart-manual-msg" class="form-help">TradingView 심볼(거래소:페어) 또는 DEX Screener 페어 링크를 넣으면 이 종목의 기본 차트가 된다.</p><div id="chart-viewer" class="chart-viewer"><p>정확한 종목과 거래 페어를 연결하고 있습니다…</p></div><p id="chart-caption" class="form-help">차트가 표시되지 않으면 외부에서 열기 버튼을 이용하세요.</p></div>`;
   showModal();
+  const fill=(list,message)=>{
+    chartChoices=list;
+    const selector=document.getElementById('chart-source-select');
+    if(!chartChoices.length){selector.innerHTML='<option>연결된 차트 없음</option>';document.getElementById('chart-viewer').textContent=message||'정확한 종목 연결이 필요합니다.';return;}
+    selector.innerHTML=chartChoices.map((s,i)=>`<option value="${i}">${escapeHTML(s.type==='dex'&&!s.label.startsWith('직접 입력')?'DEX · '+s.label:s.label)}</option>`).join('');selector.disabled=false;
+    const preferred=manual?0:(coin.cat==='fomo'?chartChoices.findIndex(x=>x.type==='dex'):0);
+    selector.value=String(preferred>=0?preferred:0);selectChart(selector.value);
+  };
+  if(manual)fill([manual]);
   try{
     const result=await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId,dex:coin.dex}});
     if(request!==chartRequest||!document.getElementById('chart-viewer'))return;
-    chartChoices=result.sources||[];
-    const selector=document.getElementById('chart-source-select');
-    if(!chartChoices.length){selector.innerHTML='<option>연결된 차트 없음</option>';document.getElementById('chart-viewer').textContent=result.message||'정확한 종목 연결이 필요합니다.';return;}
-    selector.innerHTML=chartChoices.map((s,i)=>`<option value="${i}">${escapeHTML(s.type==='dex'?'DEX · '+s.label:s.label)}</option>`).join('');selector.disabled=false;
-    const preferred=coin.cat==='fomo'?chartChoices.findIndex(x=>x.type==='dex'):0;
-    selector.value=String(preferred>=0?preferred:0);selectChart(selector.value);
+    const merged=[...(manual?[manual]:[]),...(result.sources||[])];
+    if(manual&&merged.length===1)return;
+    fill(merged,result.message);
   }catch{
     if(request!==chartRequest||!document.getElementById('chart-viewer'))return;
-    document.getElementById('chart-viewer').textContent='차트 연결을 가져오지 못했습니다. 자동 데이터 서비스 상태를 확인한 뒤 다시 열어주세요.';
+    if(manual)return;
+    document.getElementById('chart-viewer').textContent='차트 연결을 가져오지 못했습니다. 직접 입력란에 TradingView 심볼이나 DEX Screener 링크를 넣어도 된다.';
     document.getElementById('chart-source-select').innerHTML='<option>연결 실패</option>';
   }
 }
