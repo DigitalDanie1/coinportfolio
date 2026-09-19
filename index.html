@@ -371,13 +371,15 @@ function load() {
       scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
       const defMap = {};
       for (const df of DEFAULTS) defMap[df.id] = df;
+      // Push default corrections into saved coins, but never over a field the user edited.
       for (const c of coins) {
         const df = defMap[c.id];
         if (!df) continue;
-        if ('gecko' in df && df.gecko !== c.gecko) c.gecko = df.gecko;
-        if (df.ticker !== c.ticker) c.ticker = df.ticker;
-        if (df.name !== c.name) c.name = df.name;
-        if (df.note !== c.note) c.note = df.note;
+        const mine = c.edited || {};
+        if ('gecko' in df && df.gecko !== c.gecko && !mine.gecko) c.gecko = df.gecko;
+        if (df.ticker !== c.ticker && !mine.ticker) c.ticker = df.ticker;
+        if (df.name !== c.name && !mine.name) c.name = df.name;
+        if (df.note !== c.note && !mine.note) c.note = df.note;
       }
       for (const df of DEFAULTS) {
         if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));
@@ -779,7 +781,7 @@ async function findDexPairs(id) {
     box.innerHTML=r.candidates.map((c,i)=>`<button type="button" class="dex-cand" onclick="pickDexPair('${id}',${i})">
       <span class="dc-chain">${escapeHTML(c.chain)}</span>
       <span class="dc-main"><b>${escapeHTML(c.symbol)}${c.quote?'/'+escapeHTML(c.quote):''}</b><small>${escapeHTML(c.name||'')}${c.dexId?' · '+escapeHTML(c.dexId):''}</small></span>
-      <span class="dc-liq">유동성 ${c.liquidity===null?'—':'$'+Math.round(c.liquidity).toLocaleString()}</span></button>`).join('');
+      <span class="dc-liq">유동성 ${c.liquidity===null?'—':'$'+Math.round(c.liquidity).toLocaleString()}<small>시총 ${c.marketCap===null?'—':'$'+Math.round(c.marketCap).toLocaleString()}</small></span></button>`).join('');
     window.__dexCandidates=r.candidates;
   }catch{box.innerHTML='<p class="form-help">DEX Screener 검색에 실패했다. 잠시 뒤 다시 시도해라.</p>';}
 }
@@ -851,7 +853,16 @@ function submitEdit(id) {
   if(chartSrc&&!parseChartInput(chartSrc)){alert('차트 소스 형식이 올바르지 않다.\n예) BINANCE:BTCUSDT\n예) https://dexscreener.com/solana/<페어주소>');return;}
   const oldCoin=coins.find(c=>c.id===id);
   const geckoChanged=gecko!==oldCoin?.gecko;
-  updateCoin(id,{ticker,name,note,cat,gecko,chartSrc,providerId:geckoChanged?gecko:oldCoin?.providerId});
+  // Remember which fields were set by hand so a later load() does not reset them to the defaults.
+  const df=DEFAULTS.find(d=>d.id===id);
+  const edited={...(oldCoin?.edited||{})};
+  if(df){
+    if(gecko!==df.gecko) edited.gecko=true;
+    if(ticker!==df.ticker) edited.ticker=true;
+    if(name!==df.name) edited.name=true;
+    if(note!==df.note) edited.note=true;
+  }
+  updateCoin(id,{ticker,name,note,cat,gecko,chartSrc,edited,providerId:geckoChanged?gecko:oldCoin?.providerId});
   closeModal();
   renderAll();
   loadData();
