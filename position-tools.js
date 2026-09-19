@@ -25,9 +25,59 @@ function signedMoney(value) { return value == null ? '미입력' : (value >= 0 ?
 function convictionOptions(value) {
   return [[0,'미지정'],[1,'1 · 매우 낮음'],[2,'2 · 낮음'],[3,'3 · 보통'],[4,'4 · 높음'],[5,'5 · 매우 높음']].map(([v,label]) => `<option value="${v}" ${Number(value||0)===v?'selected':''}>${label}</option>`).join('');
 }
+/* Signals read off the data already on hand; anything not measurable is simply not shown. */
+function marketSignals(coin) {
+  const d = coin && (coin.gecko ? mkt[coin.gecko] : null);
+  if (!d) return [];
+  const out = [];
+  const prices = priceSeries(d);
+  if (prices.length >= 10) {
+    const high = Math.max(...prices), low = Math.min(...prices), last = prices[prices.length - 1];
+    const span = high - low;
+    if (span > 0) {
+      const pos = (last - low) / span;
+      if (last >= high) out.push({ key: 'high', label: '7일 신고가', tone: 'up' });
+      else if (pos >= 0.97) out.push({ key: 'high', label: '신고가 부근', tone: 'up' });
+      else if (last <= low) out.push({ key: 'low', label: '7일 신저가', tone: 'down' });
+      else if (pos <= 0.03) out.push({ key: 'low', label: '신저가 부근', tone: 'down' });
+    }
+    // A run only counts once it is long enough to be more than noise.
+    let run = 0;
+    for (let i = prices.length - 1; i > 0; i--) {
+      const rising = prices[i] > prices[i - 1];
+      if (run === 0) run = rising ? 1 : -1;
+      else if ((run > 0) === rising) run += rising ? 1 : -1;
+      else break;
+    }
+    if (run >= 12) out.push({ key: 'run', label: `${run}시간 연속 상승`, tone: 'up' });
+    else if (run <= -12) out.push({ key: 'run', label: `${-run}시간 연속 하락`, tone: 'down' });
+  }
+  const vol = d.total_volume, mc = d.market_cap;
+  if (vol > 0 && mc > 0) {
+    const turnover = vol / mc;
+    if (turnover >= 1) out.push({ key: 'vol', label: `거래량 시총 ${turnover.toFixed(1)}배`, tone: 'hot' });
+    else if (turnover >= 0.3) out.push({ key: 'vol', label: `거래 회전 ${(turnover * 100).toFixed(0)}%`, tone: 'hot' });
+  }
+  const t = d.txns24h;
+  if (t && t.buys > 0 && t.sells > 0) {
+    const total = t.buys + t.sells, buyShare = t.buys / total;
+    if (total >= 50 && buyShare >= 0.6) out.push({ key: 'flow', label: `매수 ${Math.round(buyShare * 100)}%`, tone: 'up' });
+    else if (total >= 50 && buyShare <= 0.4) out.push({ key: 'flow', label: `매도 ${Math.round((1 - buyShare) * 100)}%`, tone: 'down' });
+  }
+  if (d.liquidity > 0 && vol > 0 && vol / d.liquidity >= 3)
+    out.push({ key: 'churn', label: '유동성 대비 과열', tone: 'hot' });
+  return out.slice(0, 3);
+}
+function signalStrip(book, id) {
+  if (book !== 'spot') return '';
+  const signals = marketSignals(coins.find(c => c.id === id));
+  if (!signals.length) return '';
+  return `<span class="signal-strip">${signals.map(s =>
+    `<span class="signal ${s.tone}">${escapeHTML(s.label)}</span>`).join('')}</span>`;
+}
 function journalCells(book,id,item) {
   const attrs = `data-book="${book}" data-id="${escapeHTML(id)}"`;
-  return `<td class="thesis-cell"><textarea class="inline-thesis" aria-label="Thesis" placeholder="투자 논리, 촉매, 무효화 조건…" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></td>
+  return `<td class="thesis-cell">${signalStrip(book,id)}<textarea class="inline-thesis" aria-label="Thesis" placeholder="투자 논리, 촉매, 무효화 조건…" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></td>
     <td><select class="inline-conviction" aria-label="Conviction level" ${attrs} data-journal="conviction">${convictionOptions(item?.conviction)}</select></td>
     <td><button class="btn news-button" ${attrs} data-action="news">뉴스${typeof newsBadge==='function'?' · '+newsBadge(book,id).replace(/^뉴스 ?/,''):item?.newsNote?' · 메모':''}</button></td>`;
 }
