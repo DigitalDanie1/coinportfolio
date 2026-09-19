@@ -85,17 +85,21 @@ async function fetchDexCandles(dex){
 async function fillDexHistories(){
   const pending=coins.filter(c=>c.dex&&(marketByCoin[c.id]?.sparkline_in_7d?.price||[]).length<10);
   if(!pending.length)return false;
-  let changed=false;
-  for(let i=0;i<pending.length;i+=3)await Promise.all(pending.slice(i,i+3).map(async c=>{
+  let changed=false,misses=0;
+  // Paced and capped per round: GeckoTerminal rejects bursts, and a rejection reads as a network
+  // failure in the browser. The rest are picked up by later rounds and then cached for an hour.
+  for(const c of pending.slice(0,6)){
     let prices=null;
     try{prices=await fetchDexCandles(c.dex);}catch{}
     const d=marketByCoin[c.id];
-    if(!prices||!d)return;
-    const change=prices[0]>0?(prices[prices.length-1]/prices[0]-1)*100:null;
-    marketByCoin[c.id]={...d,sparkline_in_7d:{price:prices},price_change_percentage_7d_in_currency:change,chartSource:'GeckoTerminal · 1시간'};
-    if(c.gecko)mkt[c.gecko]=marketByCoin[c.id];
-    changed=true;
-  }));
+    if(prices&&d){
+      const change=prices[0]>0?(prices[prices.length-1]/prices[0]-1)*100:null;
+      marketByCoin[c.id]={...d,sparkline_in_7d:{price:prices},price_change_percentage_7d_in_currency:change,chartSource:'GeckoTerminal · 1시간'};
+      if(c.gecko)mkt[c.gecko]=marketByCoin[c.id];
+      changed=true;misses=0;
+    }else if(++misses>=3)break;
+    await new Promise(r=>setTimeout(r,500));
+  }
   if(changed)saveAutomaticCache();
   return changed;
 }
