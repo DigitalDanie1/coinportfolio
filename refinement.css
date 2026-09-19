@@ -279,6 +279,23 @@ body{padding-left:232px}
 .dc-main small{display:block;color:var(--text-3);font-size:.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dc-liq{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-3);flex-shrink:0;text-align:right}
 .dc-liq small{display:block;font-size:.63rem;opacity:.75;margin-top:2px}
+.tab[style*="--tab-dot"]::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--tab-dot);margin-right:7px;vertical-align:middle}
+.tab-manage{font-size:1rem;line-height:1;padding:8px 12px;color:var(--text-3)}
+.tab-manage:hover{color:var(--main)}
+.cat-swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:2px;vertical-align:baseline}
+.cat-rows{display:grid;gap:8px;margin-bottom:20px}
+.cat-row{display:flex;align-items:center;gap:8px}
+.cat-row input[type="color"]{width:30px;height:30px;padding:0;border:1px solid var(--border-h);border-radius:6px;background:none;cursor:pointer;flex-shrink:0}
+.cat-row input[type="text"]{flex:1;min-width:0;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border-h);border-radius:7px;padding:7px 10px;font:inherit;font-size:.8rem}
+.cat-row input[type="text"]:focus{outline:none;border-color:var(--main)}
+.cat-count{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-3);flex-shrink:0;min-width:48px;text-align:right}
+.btn-sm{padding:5px 9px;font-size:.7rem}
+.btn-sm:disabled{opacity:.3;cursor:not-allowed}
+.btn-del-sm{color:var(--red);border-color:#ef444440}
+.btn-del-sm:hover:not(:disabled){border-color:var(--red)}
+.cat-add{display:flex;gap:8px}
+.cat-add input{flex:1;min-width:0;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border-h);border-radius:7px;padding:9px 11px;font:inherit;font-size:.8rem}
+.cat-add input:focus{outline:none;border-color:var(--main)}
 .rank-item.up b{color:var(--green)}.rank-item.down b{color:var(--red)}
 @media(max-width:768px){.sector-head{flex-wrap:wrap}.sector-ranking{padding:14px}.rank-group{flex-direction:column;gap:8px}.rank-label{min-width:auto}}
 @media(max-width:640px){.sector-svg{padding:12px 4px 4px}.sector-legend{gap:6px}.sector-chip{padding:8px 12px;font-size:.76rem;gap:6px}.chip-chg{font-size:.72rem}.sector-chip small{display:none}.rank-item{font-size:.7rem;padding:3px 7px}}

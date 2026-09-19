@@ -257,13 +257,7 @@ tr{animation:fadeIn .25s ease both}
     <button class="btn btn-primary" id="add-position" onclick="addCurrentPosition()">+ 종목 추가</button>
   </div>
   <div class="workspace-toolbar">
-  <nav class="tab-bar" id="tab-bar" aria-label="종목 카테고리">
-    <button class="tab active" onclick="setTab('all')">전체 <span class="cnt" id="cnt-all">0</span></button>
-    <button class="tab" onclick="setTab('main')">메인 <span class="cnt" id="cnt-main">0</span></button>
-    <button class="tab" onclick="setTab('fomo')">포모·밈 <span class="cnt" id="cnt-fomo">0</span></button>
-    <button class="tab" onclick="setTab('etc')">기타 <span class="cnt" id="cnt-etc">0</span></button>
-    <button class="tab" onclick="setTab('stocks')">주식 <span class="cnt" id="cnt-stocks">0</span></button>
-  </nav>
+  <nav class="tab-bar" id="tab-bar" aria-label="종목 분류"></nav>
   <div class="filter-tools">
     <input class="search-input" id="asset-search" type="search" aria-label="종목 검색" placeholder="종목명, 티커 검색" oninput="renderTable()">
     <label class="holding-filter"><input id="held-only" type="checkbox" onchange="renderTable()"> 보유만</label>
@@ -291,12 +285,7 @@ tr{animation:fadeIn .25s ease both}
     </table>
   </div>
   <div class="table-footer"><span id="result-count" aria-live="polite"></span><span class="status-pill" id="status" role="status"><span class="dot load"></span> 로딩 중…</span></div>
-  <div class="add-row">
-    <button class="btn" onclick="openAdd('main')">+ 메인 추가</button>
-    <button class="btn" onclick="openAdd('fomo')">+ 포모 추가</button>
-    <button class="btn" onclick="openAdd('etc')">+ 기타 추가</button>
-    <button class="btn" onclick="openAdd('stocks')">+ 주식 추가</button>
-  </div>
+  <div class="add-row" id="add-row"></div>
   </section>
 </main>
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
@@ -306,13 +295,13 @@ tr{animation:fadeIn .25s ease both}
 // ═══ CONSTANTS ═══════════════════════════
 const STORE_KEY = 'coin-portfolio-v2';
 const GECKO_BASE = 'https://api.coingecko.com/api/v3';
-const CAT = {
-  main:{ label:'메인', color:'var(--main)' },
-  fomo:{ label:'포모·밈', color:'var(--fomo)' },
-  etc: { label:'기타', color:'var(--etc)' },
-  stocks:{ label:'주식', color:'var(--stocks)' },
-};
-const CAT_HEX = { main:'#c8ff00', fomo:'#ff6b35', etc:'#5b8def', stocks:'#a78bfa' };
+const DEFAULT_CATEGORIES = [
+  { id:'main',   label:'메인',     color:'#c8ff00' },
+  { id:'fomo',   label:'포모·밈',  color:'#ff6b35' },
+  { id:'etc',    label:'기타',     color:'#5b8def' },
+  { id:'stocks', label:'주식',     color:'#a78bfa' },
+];
+const CATEGORY_PALETTE = ['#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e','#f59e0b','#06b6d4','#ec4899','#14b8a6','#f97316','#8b5cf6','#e879f9'];
 const DEFAULTS = [
   { id:'var',   ticker:'VAR',   name:'Variational', note:'Perp DEX',  gecko:'variational',       cat:'main' },
   { id:'zec',   ticker:'ZEC',   name:'Zcash',       note:'Privacy',   gecko:'zcash',             cat:'main' },
@@ -361,6 +350,7 @@ let scenario = {text:'',updatedAt:null};
 let reflections = null;
 let appliedImports = [];
 let mkt = {};
+let categories = [];
 let currentTab = 'all';
 let sortCol = 'num';
 let sortAsc = true;
@@ -379,6 +369,7 @@ function load() {
       options = Array.isArray(d.options) ? d.options : [];
       reflections = d.reflections && typeof d.reflections.text === 'string' ? d.reflections : null;
       scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
+      categories = Array.isArray(d.categories) && d.categories.length ? d.categories : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
       const defMap = {};
       for (const df of DEFAULTS) defMap[df.id] = df;
       // Push default corrections into saved coins, but never over a field the user edited.
@@ -400,11 +391,100 @@ function load() {
     }
   } catch(e) {}
   coins = JSON.parse(JSON.stringify(DEFAULTS));
+  categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
   holdings = {};
 }
 
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+}
+
+// ═══ CATEGORIES ═════════════════════════
+function catList() { return categories.length ? categories : DEFAULT_CATEGORIES; }
+function catOf(id) { return catList().find(c => c.id === id); }
+function catLabelOf(id) { return catOf(id)?.label || id || '미분류'; }
+function catColorOf(id) { return catOf(id)?.color || '#72727e'; }
+function catFallback() { return catList()[0]?.id || 'etc'; }
+function genCatId(label) {
+  const base = String(label).trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'cat';
+  let id = base, n = 2;
+  while (catList().some(c => c.id === id)) id = base + '-' + n++;
+  return id;
+}
+function addCategory(label) {
+  const name = String(label||'').trim();
+  if (!name) return null;
+  const cat = { id: genCatId(name), label: name.slice(0,20), color: CATEGORY_PALETTE[categories.length % CATEGORY_PALETTE.length] };
+  categories.push(cat); save();
+  return cat;
+}
+function updateCategory(id, updates) { const c = catOf(id); if (c) Object.assign(c, updates); save(); }
+function moveCategory(id, delta) {
+  const i = categories.findIndex(c => c.id === id), j = i + delta;
+  if (i < 0 || j < 0 || j >= categories.length) return;
+  [categories[i], categories[j]] = [categories[j], categories[i]];
+  save();
+}
+function catRadios(name, selected) {
+  const list = catList();
+  const active = list.some(c => c.id === selected) ? selected : catFallback();
+  return list.map(c =>
+    `<label><input type="radio" name="${name}" value="${escapeHTML(c.id)}" ${c.id===active?'checked':''}> <span class="cat-swatch" style="background:${escapeHTML(c.color)}"></span>${escapeHTML(c.label)}</label>`
+  ).join('');
+}
+function openCategoryManager() {
+  const list = catList();
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-head">
+      <div class="minfo"><div class="ticker" style="font-size:1rem">분류 관리</div><div class="name">이름·색·순서를 바꾸고 새 분류를 만들 수 있다</div></div>
+      <button aria-label="닫기" class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="cat-rows">${list.map((c,i)=>`
+      <div class="cat-row">
+        <input type="color" aria-label="${escapeHTML(c.label)} 색" value="${escapeHTML(c.color)}" onchange="updateCategory('${escapeHTML(c.id)}',{color:this.value});renderAll();openCategoryManager()">
+        <input type="text" aria-label="${escapeHTML(c.label)} 이름" value="${escapeHTML(c.label)}" maxlength="20" onchange="updateCategory('${escapeHTML(c.id)}',{label:this.value.trim()||'${escapeHTML(c.label)}'});renderAll();openCategoryManager()">
+        <span class="cat-count">${coinsOf(c.id).length}종목</span>
+        <button class="btn btn-sm" ${i===0?'disabled':''} onclick="moveCategory('${escapeHTML(c.id)}',-1);renderAll();openCategoryManager()" aria-label="위로">↑</button>
+        <button class="btn btn-sm" ${i===list.length-1?'disabled':''} onclick="moveCategory('${escapeHTML(c.id)}',1);renderAll();openCategoryManager()" aria-label="아래로">↓</button>
+        <button class="btn btn-sm btn-del-sm" ${list.length<=1?'disabled':''} onclick="promptRemoveCategory('${escapeHTML(c.id)}')" aria-label="삭제">삭제</button>
+      </div>`).join('')}
+    </div>
+    <div class="field"><label>새 분류</label>
+      <div class="cat-add">
+        <input type="text" id="new-cat" placeholder="예: 장기보유, 단타, AI" maxlength="20" onkeydown="if(event.key==='Enter')submitNewCategory()">
+        <button class="btn" onclick="submitNewCategory()">추가</button>
+      </div>
+    </div>
+    <p class="form-help">분류를 지우면 그 안의 종목은 다른 분류로 옮겨진다. 종목별 분류는 종목 수정에서 바꾼다.</p>
+    <div class="modal-actions"><button class="btn-save" onclick="closeModal()">완료</button></div>`;
+  showModal();
+}
+function submitNewCategory() {
+  const input = document.getElementById('new-cat');
+  if (!addCategory(input?.value)) { alert('분류 이름을 입력해'); return; }
+  renderAll(); openCategoryManager();
+}
+function promptRemoveCategory(id) {
+  const held = coinsOf(id).length;
+  const others = catList().filter(c => c.id !== id);
+  let target = others[0]?.id;
+  if (held) {
+    const answer = prompt(`"${catLabelOf(id)}"의 ${held}개 종목을 어디로 옮길까?\n\n${others.map((c,i)=>`${i+1}. ${c.label}`).join('\n')}\n\n번호 입력:`, '1');
+    if (answer === null) return;
+    const pick = others[Number(answer) - 1];
+    if (!pick) { alert('번호를 다시 확인해'); return; }
+    target = pick.id;
+  }
+  if (removeCategory(id, target)) { renderAll(); openCategoryManager(); }
+}
+function removeCategory(id, moveTo) {
+  if (categories.length <= 1) { alert('분류는 최소 하나는 있어야 한다.'); return false; }
+  const target = moveTo && moveTo !== id ? moveTo : categories.find(c => c.id !== id).id;
+  for (const c of coins) if (c.cat === id) c.cat = target;
+  categories = categories.filter(c => c.id !== id);
+  if (currentTab === id) currentTab = 'all';
+  save();
+  return true;
 }
 
 function addCoin(c) { coins.push(c); save(); }
@@ -568,7 +648,8 @@ function setTab(cat) {
   document.getElementById('tab-bar').hidden = isPanel;
   document.querySelectorAll('.tab').forEach(t => {
     const active = t.getAttribute('onclick') === `setTab('${cat}')`;
-    t.classList.toggle('active', active); t.setAttribute('aria-pressed', String(active));
+    t.classList.toggle('active', active);
+    if (!t.classList.contains('tab-manage')) t.setAttribute('aria-pressed', String(active));
   });
   document.querySelector('.table-wrap').hidden = isPanel;
   document.querySelector('.table-footer').hidden = isPanel;
@@ -603,7 +684,7 @@ function resetFilters() {
   setTab('all');
 }
 
-function catColor(cat) { return CAT[cat]?.color || 'var(--text-3)'; }
+function catColor(cat) { return catColorOf(cat); }
 
 
 function renderHero() {
@@ -643,16 +724,25 @@ function renderHero() {
 
   document.getElementById('hero-meta').innerHTML = `<b>${coins.length}</b> 종목 · <span style="color:var(--green)">${up}▲</span> <span style="color:var(--red)">${dn}▼</span>`;
 
-  document.getElementById('cnt-all').textContent = coins.length;
-  document.getElementById('cnt-main').textContent = coinsOf('main').length;
-  document.getElementById('cnt-fomo').textContent = coinsOf('fomo').length;
-  document.getElementById('cnt-etc').textContent = coinsOf('etc').length;
-  document.getElementById('cnt-stocks').textContent = coinsOf('stocks').length;
   document.getElementById('cnt-farming').textContent = farming.length;
   document.getElementById('cnt-options').textContent = options.length;
 }
 
+function renderTabBar() {
+  const bar = document.getElementById('tab-bar');
+  if (!bar) return;
+  const tab = (id, label, count, extra='') =>
+    `<button class="tab${currentTab===id?' active':''}" onclick="setTab('${escapeHTML(id)}')"${extra}>${escapeHTML(label)} <span class="cnt">${count}</span></button>`;
+  bar.innerHTML = tab('all','전체',coins.length)
+    + catList().map(c => tab(c.id, c.label, coinsOf(c.id).length, ` style="--tab-dot:${escapeHTML(c.color)}"`)).join('')
+    + `<button class="tab tab-manage" onclick="openCategoryManager()" aria-label="분류 관리" title="분류 관리">＋</button>`;
+  const addRow = document.getElementById('add-row');
+  if (addRow) addRow.innerHTML = catList().map(c =>
+    `<button class="btn" onclick="openAdd('${escapeHTML(c.id)}')">+ ${escapeHTML(c.label)} 추가</button>`).join('');
+}
+
 function renderAll() {
+  renderTabBar();
   renderHero();
   renderTable();
 }
@@ -762,10 +852,7 @@ function openEdit(id) {
     <div class="field"><label>태그</label><input type="text" id="e-note" value="${escapeHTML(coin.note||'')}" placeholder="Perp DEX, Meme, L2 …"></div>
     <div class="field"><label>카테고리</label>
       <div class="radio-group">
-        <label><input type="radio" name="e-cat" value="main" ${coin.cat==='main'?'checked':''}> 메인</label>
-        <label><input type="radio" name="e-cat" value="fomo" ${coin.cat==='fomo'?'checked':''}> 포모·밈</label>
-        <label><input type="radio" name="e-cat" value="etc" ${coin.cat==='etc'?'checked':''}> 기타</label>
-        <label><input type="radio" name="e-cat" value="stocks" ${coin.cat==='stocks'?'checked':''}> 주식</label>
+        ${catRadios('e-cat', coin.cat)}
       </div>
     </div>
     <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="e-gecko" value="${coin.gecko?.startsWith('auto:')?'':coin.gecko||''}" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
@@ -862,7 +949,7 @@ function submitEdit(id) {
   if(!ticker){alert('티커를 입력해');return;}
   const name=document.getElementById('e-name').value.trim()||ticker;
   const note=document.getElementById('e-note').value.trim()||'';
-  const cat=document.querySelector('input[name="e-cat"]:checked')?.value||'etc';
+  const cat=document.querySelector('input[name="e-cat"]:checked')?.value||catFallback();
   const gecko=parseGeckoInput(document.getElementById('e-gecko').value);
   const chartSrc=(document.getElementById('e-chart')?.value||'').trim();
   if(chartSrc&&!parseChartInput(chartSrc)){alert('차트 소스 형식이 올바르지 않다.\n예) BINANCE:BTCUSDT\n예) https://dexscreener.com/solana/<페어주소>');return;}
@@ -895,10 +982,7 @@ function openAdd(cat) {
     <div class="field"><label>태그</label><input type="text" id="a-note" placeholder="Perp DEX, Meme, L2 …"></div>
     <div class="field"><label>카테고리</label>
       <div class="radio-group">
-        <label><input type="radio" name="a-cat" value="main" ${cat==='main'?'checked':''}> 메인</label>
-        <label><input type="radio" name="a-cat" value="fomo" ${cat==='fomo'?'checked':''}> 포모·밈</label>
-        <label><input type="radio" name="a-cat" value="etc" ${cat==='etc'?'checked':''}> 기타</label>
-        <label><input type="radio" name="a-cat" value="stocks" ${cat==='stocks'?'checked':''}> 주식</label>
+        ${catRadios('a-cat', cat)}
       </div>
     </div>
     <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="a-gecko" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
@@ -913,7 +997,7 @@ function submitAdd() {
   if(!ticker){alert('티커를 입력해');return;}
   const name=document.getElementById('a-name').value.trim()||ticker;
   const note=document.getElementById('a-note').value.trim()||'';
-  const cat=document.querySelector('input[name="a-cat"]:checked')?.value||'etc';
+  const cat=document.querySelector('input[name="a-cat"]:checked')?.value||catFallback();
   const gecko=parseGeckoInput(document.getElementById('a-gecko').value);
   const id=genId(ticker);
   addCoin({id,ticker,name,note,gecko,cat});
@@ -1036,6 +1120,7 @@ importDexLinks();
 initFarmingPairs();
 initScenario();
 initReflections();
+renderTabBar();
 setTab('all');
 renderHero();
 updateClock();

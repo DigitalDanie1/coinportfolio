@@ -146,13 +146,12 @@ function render(){
   const svg=items.length?svgChart(items):'<div style="padding:60px;text-align:center;color:var(--text-3);font-size:.85rem">비교할 종목을 선택하세요</div>';
 
   // coin picker chips grouped by category
-  const catOrder=['main','fomo','etc','stocks'];
-  const catLabel={main:'메인',fomo:'포모·밈',etc:'기타',stocks:'주식'};
+  const groupsInOrder=[...catList().map(c=>c.id),...new Set(all.map(c=>c.cat).filter(id=>!catList().some(x=>x.id===id)))];
   let chips='<div class="compare-picker">';
-  for(const cat of catOrder){
+  for(const cat of groupsInOrder){
     const group=all.filter(c=>c.cat===cat);
     if(!group.length) continue;
-    chips+=`<div class="compare-cat-group"><span class="compare-cat-label">${catLabel[cat]||cat}</span>`;
+    chips+=`<div class="compare-cat-group"><span class="compare-cat-label">${esc(catLabelOf(cat))}</span>`;
     for(const c of group){
       if(c.noData){
         chips+=`<button class="compare-coin no-data" onclick="if(typeof openEdit==='function')openEdit('${c.id}')" style="--cc:var(--text-3)"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span class="cc-chg" style="color:var(--text-3)">미연결</span></button>`;

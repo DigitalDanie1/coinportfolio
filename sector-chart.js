@@ -2,12 +2,12 @@
 (function(){
 'use strict';
 
-const CATS={
-  main:{label:'메인',color:'#c8ff00',order:0},
-  fomo:{label:'포모·밈',color:'#ff6b35',order:1},
-  etc:{label:'기타',color:'#5b8def',order:2},
-  stocks:{label:'주식',color:'#a78bfa',order:3},
-};
+// Categories are user-defined, so the group set is rebuilt from them on every render.
+function cats(){
+  const out={};
+  catList().forEach((c,i)=>{out[c.id]={label:c.label,color:c.color,order:i};});
+  return out;
+}
 // Per-coin colours so individual lines stay identifiable; category colour alone makes them one blur.
 const PALETTE=[
   '#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e',
@@ -17,14 +17,15 @@ const PALETTE=[
   '#818cf8','#fbbf24','#34d399','#f472b6','#67e8f9',
   '#d946ef','#4ade80','#fca5a5','#93c5fd','#fde047',
 ];
-let vis={main:true,fomo:true,etc:true,stocks:true};
+let vis={};
 let mode='sector';
+function visible(cat){return vis[cat]!==false;}
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function build(){
   const groups={};
-  for(const[cat,m]of Object.entries(CATS)) groups[cat]={...m,coins:[],series:[],avg:[],change:0};
+  for(const[cat,m]of Object.entries(cats())) groups[cat]={...m,coins:[],series:[],avg:[],change:0};
   for(const coin of coins){
     const d=coin.gecko?mkt[coin.gecko]:null;
     const raw=priceSeries(d);
@@ -66,9 +67,9 @@ function svgChart(groups){
 
   const vals=[];
   if(mode==='coins'){
-    for(const[cat,g]of Object.entries(groups)){if(!vis[cat])continue;for(const c of g.coins)for(const v of c.norm)vals.push(v);}
+    for(const[cat,g]of Object.entries(groups)){if(!visible(cat))continue;for(const c of g.coins)for(const v of c.norm)vals.push(v);}
   }else{
-    for(const[cat,g]of Object.entries(groups)){if(!vis[cat]||!g.avg.length)continue;for(const v of g.avg)vals.push(v);}
+    for(const[cat,g]of Object.entries(groups)){if(!visible(cat)||!g.avg.length)continue;for(const v of g.avg)vals.push(v);}
   }
   if(!vals.length) vals.push(0);
 
@@ -78,9 +79,9 @@ function svgChart(groups){
 
   let maxLen=1;
   if(mode==='coins'){
-    for(const[cat,g]of Object.entries(groups)){if(!vis[cat])continue;for(const c of g.coins)if(c.norm.length>maxLen)maxLen=c.norm.length;}
+    for(const[cat,g]of Object.entries(groups)){if(!visible(cat))continue;for(const c of g.coins)if(c.norm.length>maxLen)maxLen=c.norm.length;}
   }else{
-    for(const[cat,g]of Object.entries(groups)){if(vis[cat]&&g.avg.length>maxLen)maxLen=g.avg.length;}
+    for(const[cat,g]of Object.entries(groups)){if(visible(cat)&&g.avg.length>maxLen)maxLen=g.avg.length;}
   }
 
   const tx=i=>p.l+(i/Math.max(maxLen-1,1))*pw;
@@ -88,7 +89,7 @@ function svgChart(groups){
 
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   s+='<defs>';
-  for(const[cat,g]of Object.entries(CATS)){
+  for(const[cat,g]of Object.entries(cats())){
     s+=`<linearGradient id="sg${cat}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${g.color}" stop-opacity=".12"/><stop offset="100%" stop-color="${g.color}" stop-opacity="0"/></linearGradient>`;
   }
   s+='</defs>';
@@ -125,7 +126,7 @@ function svgChart(groups){
     s+=`<circle cx="${lx}" cy="${ly}" r="${w+1}" fill="${color}"${op&&op<1?' opacity="'+op+'"':''}/>`;
   }
 
-  const sorted=Object.entries(groups).filter(([c])=>vis[c]).sort((a,b)=>b[1].order-a[1].order);
+  const sorted=Object.entries(groups).filter(([c])=>visible(c)).sort((a,b)=>b[1].order-a[1].order);
 
   if(mode==='coins'){
     for(const[cat,g]of sorted){
@@ -180,7 +181,7 @@ function render(){
   let chips='<div class="sector-legend">';
   for(const[cat,g]of Object.entries(groups).sort((a,b)=>a[1].order-b[1].order)){
     if(!g.coins.length) continue;
-    const on=vis[cat];
+    const on=visible(cat);
     const ch=g.change,cs=(ch>=0?'+':'')+ch.toFixed(1)+'%';
     chips+=`<button class="sector-chip${on?'':' off'}" onclick="toggleSector('${cat}')" style="--chip:${g.color}"><span class="chip-dot"></span><strong>${esc(g.label)}</strong><span class="chip-chg ${ch>=0?'up':'down'}">${cs}</span><small>${g.coins.length}종목</small></button>`;
   }
@@ -191,7 +192,7 @@ function render(){
   if(mode==='coins'){
     ranking='<div class="sector-ranking">';
     for(const[cat,g]of Object.entries(groups).sort((a,b)=>a[1].order-b[1].order)){
-      if(!vis[cat]||!g.coins.length) continue;
+      if(!visible(cat)||!g.coins.length) continue;
       const sorted=[...g.coins].sort((a,b)=>b.last-a.last);
       ranking+=`<div class="rank-group"><span class="rank-label" style="color:${g.color}">${esc(g.label)}</span><div class="rank-items">`;
       for(const c of sorted){
@@ -207,6 +208,6 @@ function render(){
 }
 
 window.renderSectorChart=render;
-window.toggleSector=function(cat){vis[cat]=!vis[cat];render();};
+window.toggleSector=function(cat){vis[cat]=!visible(cat);render();};
 window.setSectorMode=function(m){mode=m;render();};
 })();

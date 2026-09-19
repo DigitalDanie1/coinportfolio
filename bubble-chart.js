@@ -2,8 +2,9 @@
 (function(){
 'use strict';
 
-const CAT_COLOR={main:'#c8ff00',fomo:'#ff6b35',etc:'#5b8def',stocks:'#a78bfa'};
-const CAT_LABEL={main:'메인',fomo:'포모·밈',etc:'기타',stocks:'주식'};
+// Bubble fills are keyed by category id, which the user can add to or rename at any time.
+function catColors(){const o={};for(const c of catList())o[c.id]=c.color;return o;}
+function gradientId(cat){return 'bg'+String(cat).replace(/[^a-zA-Z0-9_-]/g,'_');}
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
@@ -29,7 +30,7 @@ function gather(){
     const cost=qty*(h?.avgPrice||0);
     const pnl=cost>0?((val-cost)/cost*100):0;
     if(qty>0) hasHoldings=true;
-    out.push({id:c.id,ticker:c.ticker,name:c.name,cat:c.cat,price,mcap,chg7d,chg24h,qty,val,pnl,color:CAT_COLOR[c.cat]||'#888'});
+    out.push({id:c.id,ticker:c.ticker,name:c.name,cat:c.cat,price,mcap,chg7d,chg24h,qty,val,pnl,color:catColorOf(c.cat)});
   }
   return {items:out,hasHoldings};
 }
@@ -81,8 +82,8 @@ function svgBubbles(data,mode,W,H){
 
   let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
   s+='<defs>';
-  for(const[cat,col]of Object.entries(CAT_COLOR)){
-    s+=`<radialGradient id="bg${cat}" cx="35%" cy="35%"><stop offset="0%" stop-color="${col}" stop-opacity=".25"/><stop offset="100%" stop-color="${col}" stop-opacity=".08"/></radialGradient>`;
+  for(const[cat,col]of Object.entries(catColors())){
+    s+=`<radialGradient id="${gradientId(cat)}" cx="35%" cy="35%"><stop offset="0%" stop-color="${col}" stop-opacity=".25"/><stop offset="100%" stop-color="${col}" stop-opacity=".08"/></radialGradient>`;
   }
   s+='</defs>';
 
@@ -94,7 +95,7 @@ function svgBubbles(data,mode,W,H){
     const showChg=n.r>24;
     const showSize=n.r>40;
 
-    s+=`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${n.r.toFixed(1)}" fill="url(#bg${n.cat})" stroke="${n.color}" stroke-width="1.5" opacity=".9"/>`;
+    s+=`<circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${n.r.toFixed(1)}" fill="url(#${gradientId(n.cat)})" stroke="${n.color}" stroke-width="1.5" opacity=".9"/>`;
 
     s+=`<text x="${n.x.toFixed(1)}" y="${(n.y-(showChg?4:0)-(showSize?6:0)).toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="${n.color}" font-family="'JetBrains Mono',monospace" font-size="${Math.min(n.r*0.45,16).toFixed(0)}" font-weight="700">${esc(n.ticker)}</text>`;
 
@@ -123,11 +124,11 @@ function render(){
   const totalVal=items.reduce((s,d)=>s+d.val,0);
 
   let legend='<div class="bubble-legend">';
-  for(const[cat,col]of Object.entries(CAT_COLOR)){
+  for(const[cat,col]of Object.entries(catColors())){
     const group=items.filter(d=>d.cat===cat);
     if(!group.length) continue;
     const catVal=group.reduce((s,d)=>s+(mode==='val'?d.val:d.mcap),0);
-    legend+=`<span class="bubble-leg-item" style="--bc:${col}"><span class="bl-dot"></span>${CAT_LABEL[cat]} <b>${group.length}</b></span>`;
+    legend+=`<span class="bubble-leg-item" style="--bc:${col}"><span class="bl-dot"></span>${esc(catLabelOf(cat))} <b>${group.length}</b></span>`;
   }
   legend+='</div>';
 
