@@ -51,6 +51,54 @@ coinData = function(c){
   const h=holdings[c.id],price=remote.current_price??h?.manualPrice??null;
   return {coin:{...c,ticker:remote.canonicalSymbol||c.ticker,name:remote.canonicalName||c.name},d:remote,has:remote.current_price!=null,h,price,chg:remote.price_change_percentage_24h,mc:remote.market_cap,holdVal:h?.qty?price*h.qty:0};
 };
+// The data service shares one datacentre IP, which GeckoTerminal throttles far below what this
+// book needs, so DEX candles are fetched from the browser where each user has their own limit.
+const DEX_HISTORY_TTL=3600000;
+const dexHistoryCache={};
+async function fetchDexCandles(dex){
+  if(!dex||!/^[a-z0-9_-]{1,40}$/.test(dex.chain)||!/^[a-zA-Z0-9]{1,100}$/.test(dex.pair))return null;
+  const key=dex.chain+':'+dex.pair,hit=dexHistoryCache[key];
+  if(hit&&Date.now()-hit.at<DEX_HISTORY_TTL)return hit.prices;
+  const ohlcv=async pool=>{
+    const r=await fetch(`https://api.geckoterminal.com/api/v2/networks/${encodeURIComponent(dex.chain)}/pools/${encodeURIComponent(pool)}/ohlcv/hour?aggregate=1&limit=168`,{signal:AbortSignal.timeout(15000)});
+    if(!r.ok)return null;
+    const rows=(await r.json())?.data?.attributes?.ohlcv_list;
+    if(!Array.isArray(rows))return null;
+    const prices=rows.map(x=>Number(x[4])).filter(x=>Number.isFinite(x)&&x>0).reverse();
+    return prices.length?prices:null;
+  };
+  let prices=await ohlcv(dex.pair);
+  if(!prices&&/^[a-zA-Z0-9]{1,100}$/.test(dex.token||'')){
+    // GeckoTerminal indexes fewer pools than DEX Screener; use its deepest pool for the token.
+    try{
+      const r=await fetch(`https://api.geckoterminal.com/api/v2/networks/${encodeURIComponent(dex.chain)}/tokens/${encodeURIComponent(dex.token)}/pools?page=1`,{signal:AbortSignal.timeout(15000)});
+      if(r.ok){
+        const best=((await r.json())?.data||[]).map(p=>p.attributes).filter(a=>a?.address)
+          .sort((a,b)=>Number(b.reserve_in_usd||0)-Number(a.reserve_in_usd||0))[0];
+        if(best)prices=await ohlcv(best.address);
+      }
+    }catch{}
+  }
+  if(prices)dexHistoryCache[key]={at:Date.now(),prices};
+  return prices;
+}
+async function fillDexHistories(){
+  const pending=coins.filter(c=>c.dex&&(marketByCoin[c.id]?.sparkline_in_7d?.price||[]).length<10);
+  if(!pending.length)return false;
+  let changed=false;
+  for(let i=0;i<pending.length;i+=3)await Promise.all(pending.slice(i,i+3).map(async c=>{
+    let prices=null;
+    try{prices=await fetchDexCandles(c.dex);}catch{}
+    const d=marketByCoin[c.id];
+    if(!prices||!d)return;
+    const change=prices[0]>0?(prices[prices.length-1]/prices[0]-1)*100:null;
+    marketByCoin[c.id]={...d,sparkline_in_7d:{price:prices},price_change_percentage_7d_in_currency:change,chartSource:'GeckoTerminal · 1시간'};
+    if(c.gecko)mkt[c.gecko]=marketByCoin[c.id];
+    changed=true;
+  }));
+  if(changed)saveAutomaticCache();
+  return changed;
+}
 function applyMarketResponse(response){
   for(const [id,incoming] of Object.entries(response.data||{})){
     const previous=marketByCoin[id];
@@ -114,6 +162,7 @@ async function syncAutomatic(force=false){
     const failed=results.filter(r=>r.status==='rejected').length;
     if(failed===tasks.length)throw new Error('데이터 서비스 연결 실패');
     await syncNews(force);
+    if(await fillDexHistories())renderAll();
     autoFailures=0;nextAutoSync=Date.now()+60000;
     const live=coins.filter(c=>marketByCoin[c.id]?.current_price!=null&&!marketByCoin[c.id]?.stale).length;
     status.textContent=`자동 갱신 켜짐 · 시세 ${live}/${coins.length} · 뉴스 15분 · ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
