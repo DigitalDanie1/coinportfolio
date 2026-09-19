@@ -777,6 +777,56 @@ async function findDexPairs(id) {
     window.__dexCandidates=r.candidates;
   }catch{box.innerHTML='<p class="form-help">DEX Screener 검색에 실패했다. 잠시 뒤 다시 시도해라.</p>';}
 }
+const DEX_CHAIN_HINTS=['robinhood','hyperevm','solana','base','ethereum','bsc','arbitrum','polygon'];
+// Ticker alone collides across chains, so weigh liquidity share, the note's chain and the coin's name.
+function scoreDexCandidate(coin, c, totalLiquidity) {
+  const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  let score=(c.liquidity||0)/Math.max(totalLiquidity,1)*40;
+  const hint=String(coin.note||'').toLowerCase();
+  for(const chain of DEX_CHAIN_HINTS) if(hint.includes(chain)&&c.chain===chain) score+=100;
+  const cand=norm(c.name), name=norm(coin.name);
+  // A name equal to the ticker carries no information and would favour a tiny same-named token.
+  if(name&&name!==norm(coin.ticker)){
+    if(cand===name) score+=60;
+    else if(cand&&(cand.startsWith(name)||name.startsWith(cand))) score+=28;
+  }
+  return score;
+}
+function resolveDexCandidate(coin, candidates) {
+  if(!candidates?.length) return null;
+  const total=candidates.reduce((s,c)=>s+(c.liquidity||0),0);
+  const ranked=candidates.map(c=>({c,score:scoreDexCandidate(coin,c,total)})).sort((a,b)=>b.score-a.score);
+  const margin=ranked.length>1?ranked[0].score-ranked[1].score:Infinity;
+  return {pick:ranked[0].c, confident:margin>=8, margin};
+}
+async function autoConnectDex() {
+  const targets=coins.filter(c=>{
+    if(c.dex) return false;
+    const d=c.gecko?mkt[c.gecko]:null;
+    return !(d&&d.current_price>0);
+  });
+  if(!targets.length){alert('연결할 종목이 없다.');return;}
+  const btn=document.getElementById('auto-dex-btn');
+  const done=[],unsure=[],missing=[];
+  for(const coin of targets){
+    if(btn) btn.textContent=`연결 중… ${done.length+unsure.length+missing.length+1}/${targets.length}`;
+    try{
+      const r=await dataAPI('/api/dexsearch',{query:coin.ticker});
+      const res=resolveDexCandidate(coin,r.candidates);
+      if(!res){missing.push(coin.ticker);continue;}
+      if(res.confident){updateCoin(coin.id,{dex:{chain:res.pick.chain,pair:res.pick.pair,token:res.pick.token}});done.push(`${coin.ticker} → ${res.pick.chain}`);}
+      else unsure.push(coin.ticker);
+    }catch{missing.push(coin.ticker);}
+  }
+  if(btn) btn.textContent='미연결 자동 연결';
+  renderAll(); loadData();
+  alert([
+    `연결됨 ${done.length}개`,
+    ...done.map(x=>'  '+x),
+    unsure.length?`\n애매해서 건너뜀 ${unsure.length}개 (종목 수정에서 직접 고르면 된다)\n  ${unsure.join(', ')}`:'',
+    missing.length?`\n못 찾음 ${missing.length}개\n  ${missing.join(', ')}`:''
+  ].filter(Boolean).join('\n'));
+}
 function pickDexPair(id, index) {
   const c=(window.__dexCandidates||[])[index]; if(!c) return;
   updateCoin(id,{dex:{chain:c.chain,pair:c.pair,token:c.token}});

@@ -25,8 +25,29 @@ function renderVenueRoster(){
   };
   return `<div class="venue-roster"><div class="venue-roster-head"><strong>파밍 대상 ${FARMING_VENUES.length}곳</strong><span>${done}곳 페어에 연결됨 · ${FARMING_VENUES.length-done}곳 미연결</span></div><div class="venue-grid">${venues.map(chip).join('')}</div></div>`;
 }
+const PAIR_PLAN=[
+  {id:'pair-quote-truenorth', name:'Quote × Truenorth', long:'Quote',  short:'Truenorth'},
+  {id:'pair-qfex-risex',      name:'QFEX × RiseX',      long:'QFEX',   short:'RiseX'},
+  {id:'pair-arcus-entropy',   name:'Arcus × Entropy',   long:'Arcus',  short:'Entropy'}
+];
+const PAIR_STRATEGY='공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토';
+function planPair(p){
+  return {id:p.id,name:p.name,ticker:'',
+    long:{venue:p.long,side:'long',manual:true},
+    short:{venue:p.short,side:'short',manual:true},
+    reason:'',conviction:0,strategy:PAIR_STRATEGY};
+}
 function initFarmingPairs(){
-  if(farmingPairs===null){farmingPairs=[1,2,3].map(n=>({id:'pair-'+n,name:'페어 '+n,ticker:'',long:{},short:{},reason:'',conviction:0,strategy:'공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토'}));save();}
+  if(farmingPairs===null){farmingPairs=PAIR_PLAN.map(planPair);save();return;}
+  // Seed any planned pair a saved book predates, leaving the user's own pairs alone.
+  let changed=false;
+  for(const p of PAIR_PLAN)if(!farmingPairs.some(x=>x.id===p.id)){farmingPairs.push(planPair(p));changed=true;}
+  if(changed){
+    // Drop the original unnamed placeholders, but only while still untouched.
+    const blank=p=>/^pair-[123]$/.test(p.id)&&!p.ticker&&!p.reason&&!p.conviction&&!p.long?.venue&&!p.short?.venue&&!p.long?.positionId&&!p.short?.positionId;
+    farmingPairs=farmingPairs.filter(p=>!blank(p));
+    save();
+  }
 }
 function pairNumber(value){return value===null||value===undefined||value===''||!Number.isFinite(Number(value))?null:Number(value);}
 function pairLeg(pair,side){

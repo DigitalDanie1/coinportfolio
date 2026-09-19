@@ -168,7 +168,8 @@ function render(){
   chips+='</div>';
 
   // quick actions
-  const actions=`<div class="compare-actions"><button class="btn btn-sm" onclick="compareSelectAll()">전체 선택</button><button class="btn btn-sm" onclick="compareClear()">초기화</button></div>`;
+  const pending=all.filter(c=>c.noData).length;
+  const actions=`<div class="compare-actions">${pending?`<button class="btn btn-sm" id="auto-dex-btn" onclick="autoConnectDex()">미연결 ${pending}개 자동 연결</button>`:''}<button class="btn btn-sm" onclick="compareSelectAll()">전체 선택</button><button class="btn btn-sm" onclick="compareClear()">초기화</button></div>`;
 
   panel.innerHTML=`<div class="sector-head"><div><h3>COMPARE / INDIVIDUAL</h3><p>개별 종목을 선택해 누적 수익률을 비교하세요</p></div>${actions}</div>${chips}<div class="sector-svg">${svg}</div>`;
 }
