@@ -180,8 +180,17 @@ tr{animation:fadeIn .25s ease both}
   <div class="workspace-nav-label">WORKSPACE</div>
   <div class="workspace-nav-items">
     <button type="button" data-workspace="portfolio" aria-current="page" onclick="setWorkspaceView('portfolio')">포트폴리오</button>
-    <button type="button" data-workspace="farming" onclick="setWorkspaceView('farming')">DEX PERP Farming</button>
-    <button type="button" data-workspace="options" onclick="setWorkspaceView('options')">Options</button>
+    <button type="button" data-workspace="farming" onclick="setWorkspaceView('farming')">DEX PERP Farming <span class="cnt" id="cnt-farming">0</span></button>
+    <button type="button" data-workspace="options" onclick="setWorkspaceView('options')">Options <span class="cnt" id="cnt-options">0</span></button>
+  </div>
+  <div class="workspace-nav-label">분석</div>
+  <div class="workspace-nav-items">
+    <button type="button" data-workspace="sector" onclick="setWorkspaceView('sector')">섹터 비교</button>
+    <button type="button" data-workspace="compare" onclick="setWorkspaceView('compare')">Compare</button>
+    <button type="button" data-workspace="bubble" onclick="setWorkspaceView('bubble')">Bubble</button>
+  </div>
+  <div class="workspace-nav-label">기록</div>
+  <div class="workspace-nav-items">
     <button type="button" data-workspace="scenario" onclick="setWorkspaceView('scenario')">시장 시나리오</button>
     <button type="button" data-workspace="principles" onclick="setWorkspaceView('principles')">투자 원칙 · 복기</button>
   </div>
@@ -254,11 +263,6 @@ tr{animation:fadeIn .25s ease both}
     <button class="tab" onclick="setTab('fomo')">포모·밈 <span class="cnt" id="cnt-fomo">0</span></button>
     <button class="tab" onclick="setTab('etc')">기타 <span class="cnt" id="cnt-etc">0</span></button>
     <button class="tab" onclick="setTab('stocks')">주식 <span class="cnt" id="cnt-stocks">0</span></button>
-    <button class="tab" onclick="setTab('farming')">DEX PERP Farming <span class="cnt" id="cnt-farming">0</span></button>
-    <button class="tab" onclick="setTab('options')">Options <span class="cnt" id="cnt-options">0</span></button>
-    <button class="tab" onclick="setTab('sector')">섹터 비교</button>
-    <button class="tab" onclick="setTab('compare')">Compare</button>
-    <button class="tab" onclick="setTab('bubble')">Bubble</button>
   </nav>
   <div class="filter-tools">
     <input class="search-input" id="asset-search" type="search" aria-label="종목 검색" placeholder="종목명, 티커 검색" oninput="renderTable()">
@@ -541,7 +545,8 @@ function getFiltered() {
 function setTab(cat) {
   currentTab = cat;
   const isPanel = cat === 'sector' || cat === 'compare' || cat === 'bubble';
-  if(typeof updateWorkspaceNavigation==='function')updateWorkspaceNavigation(cat==='farming'||cat==='options'?cat:'portfolio');
+  if(typeof updateWorkspaceNavigation==='function')updateWorkspaceNavigation(['farming','options','sector','compare','bubble'].includes(cat)?cat:'portfolio');
+  document.getElementById('tab-bar').hidden = isPanel;
   document.querySelectorAll('.tab').forEach(t => {
     const active = t.getAttribute('onclick') === `setTab('${cat}')`;
     t.classList.toggle('active', active); t.setAttribute('aria-pressed', String(active));

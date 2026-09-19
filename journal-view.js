@@ -194,10 +194,12 @@ async function connectDetailChart(coin){
   await resolve();
 }
 
-const WORKSPACE_VIEWS=['portfolio','farming','options','scenario','principles'];
+// Views that live inside the positions surface; the rest replace it entirely.
+const POSITION_VIEWS=['portfolio','farming','options','sector','compare','bubble'];
+const WORKSPACE_VIEWS=[...POSITION_VIEWS,'scenario','principles'];
 function updateWorkspaceNavigation(view){
   if(!WORKSPACE_VIEWS.includes(view))return;
-  const positions=['portfolio','farming','options'].includes(view);
+  const positions=POSITION_VIEWS.includes(view);
   document.getElementById('workspace-positions').hidden=!positions;
   document.getElementById('workspace-scenario').hidden=view!=='scenario';
   const principles=document.getElementById('workspace-principles');
@@ -211,8 +213,8 @@ function updateWorkspaceNavigation(view){
 }
 function setWorkspaceView(view){
   if(!WORKSPACE_VIEWS.includes(view))return;
-  if(['portfolio','farming','options'].includes(view)){
-    setTab(view==='portfolio'?(['farming','options'].includes(currentTab)?'all':currentTab):view);
+  if(POSITION_VIEWS.includes(view)){
+    setTab(view==='portfolio'?(POSITION_VIEWS.includes(currentTab)?'all':currentTab):view);
   }else updateWorkspaceNavigation(view);
   // Switch the visible surface without replacing inputs or disturbing saved drafts.
   window.scrollTo({top:0,behavior:'instant'});
