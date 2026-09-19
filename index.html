@@ -324,12 +324,22 @@ const DEFAULTS = [
   { id:'uni',   ticker:'UNI',   name:'Uniswap',     note:'DEX',       gecko:'uniswap',           cat:'main' },
   { id:'prlg',  ticker:'PRLG',  name:'프롤로그',    note:'Meme',      gecko:'prologue',          cat:'fomo' },
   { id:'stonk', ticker:'STONK', name:'스통크',       note:'Meme',      gecko:null,                cat:'fomo' },
-  { id:'ubik',  ticker:'UBIK',  name:'UBIK',        note:'Meme',      gecko:null,                cat:'fomo' },
-  { id:'zzz',   ticker:'ZZZ',   name:'ZZZ',         note:'Meme',      gecko:null,                cat:'fomo' },
-  { id:'bun',   ticker:'BUN',   name:'BUN',         note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'ubik',  ticker:'UBIK',  name:'UBIK',        note:'Robinhood', gecko:null,                cat:'fomo', dex:{chain:'robinhood',pair:'0x6d56f66e52e63e8be558d708a987426314bb4de92bc9b43a44effee1f2abf317',token:'0x812486EAea648819853F8E372dc9f1516C7868Bd'} },
+  { id:'zzz',   ticker:'ZZZ',   name:'ZZZ',         note:'Robinhood', gecko:null,                cat:'fomo', dex:{chain:'robinhood',pair:'0x6538e2c223ed70228114983afecbe5e69fe627e2fafdf367bdd6bdeff2ad391f',token:'0x7dbf38976f6D3b9c529e7D9484A71898B409eE6a'} },
+  { id:'bun',   ticker:'BUN',   name:'Bundle Cat',  note:'Robinhood', gecko:null,                cat:'fomo', dex:{chain:'robinhood',pair:'0x06e308b77bdafd691d179645296ce8c40e33c6af4a879a913efc7eedc402581c',token:'0x07EBB29a38Fbcb41563817e5E19f2ceC619C90D2'} },
   { id:'purr-rh',  ticker:'PURR', name:'PURR',      note:'Robinhood', gecko:null,                cat:'fomo' },
-  { id:'purr-hev', ticker:'PURR', name:'PURR',      note:'HyperEVM',  gecko:null,                cat:'fomo' },
-  { id:'rock',  ticker:'ROCK',  name:'ROCK',        note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'purr-hev', ticker:'PURR', name:'PURR',      note:'HyperEVM',  gecko:null,                cat:'fomo', dex:{chain:'hyperevm',pair:'0x54175D986b00292B669B9AefA0a466d12B8215D6',token:'0x9b498C3c8A0b8CD8BA1D9851d40D186F1872b44E'} },
+  { id:'rock',  ticker:'ROCK',  name:'Ether Rock',  note:'Meme',      gecko:null,                cat:'fomo', dex:{chain:'solana',pair:'8iUZBKeXCuHDxjbHVFPqhXy14Wk6ZPtC572g7GAtgRVE',token:'7LxC96Ag4DnBotK6bMMUj4kdneAo1kdV1xHnzVF5s7W2'} },
+  { id:'dex-solana-purr', ticker:'PURR', name:'Hypurr', note:'Solana', gecko:null,               cat:'fomo', dex:{chain:'solana',pair:'Ad7pbBvVRNofo96WR6eHwmU2o4naZ6Lao1J98hW8a1TQ',token:'8RNUw4N655VSrZKuhGdywhbSMDTrheguFPfxbpE2NZHQ'} },
+  { id:'dex-robinhood-frong', ticker:'FRONG', name:'frong', note:'Robinhood', gecko:null,        cat:'fomo', dex:{chain:'robinhood',pair:'0xacea8920877840033f0275c37f9b61550b5326917e948bcf8339714d96f9521a',token:'0x6245e67affA44a23077f0Ea7f981a8DC743a0c47'} },
+  { id:'dex-robinhood-orbio', ticker:'ORBIO', name:'Orbio.so', note:'Robinhood', gecko:null,     cat:'fomo', dex:{chain:'robinhood',pair:'0xa95b1fbdccb15d2b07509b980f63adab8a94303b1781f5ebc53b72942d12ddc1',token:'0xAa07A0e9209e16aC99708C3EC70159c6eF3128A3'} },
+  { id:'dex-robinhood-net', ticker:'NET', name:'NetNet', note:'Robinhood', gecko:null,           cat:'fomo', dex:{chain:'robinhood',pair:'0x59F95461E68e0c77605299791E1449f175165B54',token:'0xCA9c78Dd337A67F6e0077F65F5E9218719d30eDf'} },
+  { id:'dex-robinhood-delta', ticker:'DELTA', name:'Delta', note:'Robinhood', gecko:null,        cat:'fomo', dex:{chain:'robinhood',pair:'0xD64FbdA67E1015dF43Fa5e49F02cA844729E5F94',token:'0xe8ffd7e24187F72afB08d75B1bb13088A989a791'} },
+  { id:'dex-robinhood-juggernaut', ticker:'JUGGERNAUT', name:'The Juggernaut', note:'Robinhood', gecko:null, cat:'fomo', dex:{chain:'robinhood',pair:'0x588b0785f50063260003B7790C42f1eF74902746',token:'0xD7321801CAae694090694Ff55A9323139F043B88'} },
+  { id:'neet',  ticker:'NEET',  name:'NotInEmploymentEducation', note:'Meme', gecko:null,        cat:'fomo', dex:{chain:'solana',pair:'5wNu5QhdpRGrL37ffcd6TMMqZugQgxwafgz477rShtHy',token:'Ce2gx9KGXJ6C9Mp5b5x1sn9Mg87JwEbrQby4Zqo3pump'} },
+  { id:'cards', ticker:'CARDS', name:'Collector Crypt', note:'RWA',  gecko:null,                 cat:'etc',  dex:{chain:'solana',pair:'HnhpJPJgBG2KwniMTNW8cVBHvk1hFog3RC3kjnyc23tD',token:'CARDSccUMFKoPRZxt5vt3ksUbxEFEcnZ3H2pd3dKxYjp'} },
+  { id:'kled',  ticker:'KLED',  name:'KLEDAI',      note:'AI',        gecko:null,                cat:'fomo', dex:{chain:'solana',pair:'4SBYWY5UuxybWuj8FwHdFXUN6mbtACrqbJwiZ9mXworP',token:'1zJX5gRnjLgmTpq5sVwkq69mNDQkCemqoasyjaPW6jm'} },
+  { id:'odys',  ticker:'ODYS',  name:'ODYS',        note:'DeFi',      gecko:null,                cat:'etc',  dex:{chain:'arbitrum',pair:'0x628854F0CFD7Debd6E04361421Ee9c06C77048c3',token:'0x018D6a98555686bE1CA5b6896ef6c42cf67E2BD1'} },
   { id:'zero',  ticker:'ZRO',   name:'LayerZero',   note:'Omnichain', gecko:'layerzero-2',       cat:'etc' },
   { id:'cant',  ticker:'CANT',  name:'Canton',      note:'L1',        gecko:'canton-network',    cat:'etc' },
   { id:'link',  ticker:'LINK',  name:'Chainlink',   note:'Oracle',    gecko:'chainlink',         cat:'etc' },
@@ -380,6 +390,7 @@ function load() {
         if (df.ticker !== c.ticker && !mine.ticker) c.ticker = df.ticker;
         if (df.name !== c.name && !mine.name) c.name = df.name;
         if (df.note !== c.note && !mine.note) c.note = df.note;
+        if (df.dex && !c.dex && !mine.dex) c.dex = JSON.parse(JSON.stringify(df.dex));
       }
       for (const df of DEFAULTS) {
         if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));
@@ -835,12 +846,16 @@ async function autoConnectDex() {
     missing.length?`\n못 찾음 ${missing.length}개\n  ${missing.join(', ')}`:''
   ].filter(Boolean).join('\n'));
 }
+function markEdited(id, field) {
+  const coin=coins.find(c=>c.id===id);
+  return {...(coin?.edited||{}), [field]:true};
+}
 function pickDexPair(id, index) {
   const c=(window.__dexCandidates||[])[index]; if(!c) return;
-  updateCoin(id,{dex:{chain:c.chain,pair:c.pair,token:c.token}});
+  updateCoin(id,{dex:{chain:c.chain,pair:c.pair,token:c.token},edited:markEdited(id,'dex')});
   closeModal(); renderAll(); loadData();
 }
-function clearDexPair(id) { updateCoin(id,{dex:null}); openEdit(id); }
+function clearDexPair(id) { updateCoin(id,{dex:null,edited:markEdited(id,'dex')}); openEdit(id); }
 
 function submitEdit(id) {
   const ticker=(document.getElementById('e-ticker').value||'').trim().toUpperCase();
