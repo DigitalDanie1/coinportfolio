@@ -299,7 +299,6 @@ const DEFAULT_CATEGORIES = [
   { id:'main',   label:'메인',     color:'#c8ff00' },
   { id:'fomo',   label:'포모·밈',  color:'#ff6b35' },
   { id:'etc',    label:'기타',     color:'#5b8def' },
-  { id:'stocks', label:'주식',     color:'#a78bfa' },
 ];
 const CATEGORY_PALETTE = ['#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e','#f59e0b','#06b6d4','#ec4899','#14b8a6','#f97316','#8b5cf6','#e879f9'];
 const DEFAULTS = [
@@ -370,6 +369,10 @@ function load() {
       reflections = d.reflections && typeof d.reflections.text === 'string' ? d.reflections : null;
       scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
       categories = Array.isArray(d.categories) && d.categories.length ? d.categories : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      // This book tracks coins only; a stocks category resolved tickers against Yahoo, so STX
+      // came back as Seagate rather than Stacks.
+      categories = categories.filter(c => c.id !== 'stocks');
+      if (!categories.length) categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
       const defMap = {};
       for (const df of DEFAULTS) defMap[df.id] = df;
       // Push default corrections into saved coins, but never over a field the user edited.
@@ -386,6 +389,8 @@ function load() {
       for (const df of DEFAULTS) {
         if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));
       }
+      const fallback = categories[0].id;
+      for (const c of coins) if (!categories.some(x => x.id === c.cat)) c.cat = fallback;
       save();
       return;
     }
@@ -761,7 +766,7 @@ function openDetail(id) {
   const chartPrices=priceSeries(d);
   const spark = `<a id="detail-chart-link" class="detail-chart-link" target="_blank" rel="noopener noreferrer" aria-label="${escapeHTML(coin.ticker)} 외부 차트 열기" aria-disabled="true">
     ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m'):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
-    <span id="detail-chart-status" class="detail-chart-status">${coin.cat==='stocks'?'TradingView':'DEX Screener'} 연결 확인 중…</span>
+    <span id="detail-chart-status" class="detail-chart-status">차트 연결 확인 중…</span>
   </a>`;
 
   let dataGrid = '';

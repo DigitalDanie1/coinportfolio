@@ -175,17 +175,19 @@ async function connectDetailChart(coin){
   let pending=false;
   const resolve=async()=>{
     if(pending)return;pending=true;
-    status.textContent=(coin.cat==='stocks'?'TradingView':'DEX Screener')+' 연결 확인 중…';
+    status.textContent='차트 연결 확인 중…';
     try{
       const sources=coin.dex
         ?[{type:'dex',url:`https://dexscreener.com/${coin.dex.chain}/${coin.dex.pair}`}]
         :(await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId}})).sources||[];
       if(document.getElementById('detail-chart-link')!==link)return;
-      const source=sources.find(s=>s.type===(coin.cat==='stocks'?'tradingview':'dex'));
-      const url=source&&new URL(source.url);
-      if(!url||url.protocol!=='https:'||url.hostname!==(coin.cat==='stocks'?'www.tradingview.com':'dexscreener.com'))throw new Error('No verified chart');
-      link.href=url.href;link.setAttribute('aria-disabled','false');
-      status.textContent=(coin.cat==='stocks'?'TradingView':'DEX Screener')+'에서 보기 ↗';
+      const hosts={dex:'dexscreener.com',tradingview:'www.tradingview.com'};
+      const source=sources.find(s=>{
+        try{const u=new URL(s.url);return u.protocol==='https:'&&u.hostname===hosts[s.type];}catch{return false;}
+      });
+      if(!source)throw new Error('No verified chart');
+      link.href=new URL(source.url).href;link.setAttribute('aria-disabled','false');
+      status.textContent=(source.type==='dex'?'DEX Screener':'TradingView')+'에서 보기 ↗';
     }catch{
       if(document.getElementById('detail-chart-link')===link)status.textContent='차트 연결을 확인하지 못했습니다 · 눌러서 재시도';
     }finally{pending=false;}
