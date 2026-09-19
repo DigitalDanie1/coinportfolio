@@ -99,20 +99,20 @@ function svgChart(groups){
   for(let i=0;i<=gn;i++){
     const y=p.t+(i/gn)*ph;
     const v=yMax-(i/gn)*(yMax-yMin);
-    s+=`<line x1="${p.l}" y1="${y}" x2="${W-p.r}" y2="${y}" stroke="#ffffff08"/>`;
-    s+=`<text x="${W-p.r+8}" y="${y+4}" fill="#969ea9" font-family="'JetBrains Mono',monospace" font-size="11">${v>=0?'+':''}${v.toFixed(1)}%</text>`;
+    s+=`<line x1="${p.l}" y1="${y}" x2="${W-p.r}" y2="${y}" stroke="var(--grid)"/>`;
+    s+=`<text x="${W-p.r+8}" y="${y+4}" fill="var(--text-3)" font-family="'JetBrains Mono',monospace" font-size="11">${v>=0?'+':''}${v.toFixed(1)}%</text>`;
   }
   // zero line
   if(yMin<0&&yMax>0){
     const zy=ty(0);
-    s+=`<line x1="${p.l}" y1="${zy}" x2="${W-p.r}" y2="${zy}" stroke="#ffffff1a" stroke-dasharray="5,4"/>`;
+    s+=`<line x1="${p.l}" y1="${zy}" x2="${W-p.r}" y2="${zy}" stroke="var(--grid-strong)" stroke-dasharray="5,4"/>`;
   }
   // time axis
   const now=new Date();
   for(let d=6;d>=0;d--){
     const dt=new Date(now-d*864e5);
     const x=p.l+((6-d)/6)*pw;
-    s+=`<text x="${x}" y="${H-10}" fill="#969ea9" font-family="system-ui" font-size="12" text-anchor="middle">${dt.getMonth()+1}월 ${dt.getDate()}일</text>`;
+    s+=`<text x="${x}" y="${H-10}" fill="var(--text-3)" font-family="system-ui" font-size="12" text-anchor="middle">${dt.getMonth()+1}월 ${dt.getDate()}일</text>`;
   }
 
   function line(data,color,w,catKey,op){

@@ -1,15 +1,36 @@
-/* Existing dark/lime identity, tuned for a readable personal dashboard. */
-:root{--bg:#0c0e11;--surface:#14171b;--surface-2:#1b1f24;--surface-3:#24292f;--border:#ffffff0d;--border-h:#ffffff1a;--text-1:#f3f5f7;--text-2:#bcc2ca;--text-3:#969ea9;--green:#56d692;--red:#ff8088;--r:10px;--rl:16px}
-body{padding:0 32px 48px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh}
+/* Toss-style light surface by default; the original dark identity stays available as a theme. */
+:root{
+  --bg:#ffffff;--surface:#f7f8fa;--surface-2:#f2f4f6;--surface-3:#e8ebed;
+  --border:#0000000d;--border-h:#00000014;
+  /* Toss's own greys sit near 3:1 on white; these are darkened to clear 4.5:1 as text. */
+  --text-1:#191f28;--text-2:#4e5968;--text-3:#5f6b7a;
+  --main:#1b64da;--main-ink:#ffffff;--main-hover:#1657c4;
+  --grid:#00000008;--grid-strong:#00000014;--thead:#f7f8fa;--row-hover:#f2f4f6;
+  --shadow-card:0 1px 3px #0000000a,0 8px 24px #0000000a;
+  --r:12px;--rl:20px;
+}
+/* Korean trading apps read red as up; this book follows the exchanges, so green stays up. */
+:root{--green:#00794a;--red:#d11a31;--green-dim:#00794a1a;--red-dim:#d11a311a}
+:root[data-theme="dark"]{
+  --bg:#0c0e11;--surface:#14171b;--surface-2:#1b1f24;--surface-3:#24292f;
+  --border:#ffffff0d;--border-h:#ffffff1a;
+  --text-1:#f3f5f7;--text-2:#bcc2ca;--text-3:#969ea9;
+  --green:#56d692;--red:#ff8088;
+  --main:#c8ff00;--main-ink:#111500;--main-hover:#d6ff42;
+  --grid:#ffffff08;--grid-strong:#ffffff1a;--thead:#191d22;--row-hover:#1b2026;
+  --shadow-card:none;
+}
+body{padding:0 32px 48px;font-family:'Pretendard Variable',Pretendard,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;background:var(--bg);color:var(--text-1)}
+.theme-toggle{min-width:40px;padding:9px 12px;font-size:.95rem;line-height:1}
 .shell{max-width:1180px}
 header{padding:28px 0 24px;border-bottom:1px solid var(--border-h);gap:20px}
 header h1{font-size:1.05rem;letter-spacing:-.04em}
 header .right{gap:16px}
 header .ts{font-size:.73rem}
 .btn{font-size:.8rem;min-height:40px;padding:9px 15px;color:var(--text-2);border-radius:8px;white-space:nowrap}
-.btn:hover{background:var(--surface-3);color:var(--text-1);border-color:#ffffff40}
-.btn-primary{background:var(--main);border-color:var(--main);color:#111500;font-weight:650}
-.btn-primary:hover{background:#d6ff42;border-color:#d6ff42;color:#111500}
+.btn:hover{background:var(--surface-3);color:var(--text-1);border-color:var(--border-h)}
+.btn-primary{background:var(--main);border-color:var(--main);color:var(--main-ink);font-weight:650}
+.btn-primary:hover{background:var(--main-hover);border-color:var(--main-hover);color:var(--main-ink)}
 .hero{padding:38px 0 32px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr);gap:32px;align-items:center}
 .hero-label{font-size:.83rem;color:var(--text-2);margin-bottom:13px}
 .hero-val{font-size:clamp(2.2rem,4.4vw,3.6rem);font-weight:680;letter-spacing:-.055em;font-variant-numeric:tabular-nums}
@@ -39,12 +60,12 @@ header .ts{font-size:.73rem}
 .holding-filter input{accent-color:var(--main);width:15px;height:15px}
 .table-wrap{border-radius:12px;overflow-x:auto}
 table{table-layout:fixed}
-th{font-size:.77rem;font-weight:600;color:var(--text-2);padding:14px 18px;letter-spacing:0;text-transform:none;background:#191d22;cursor:default}
+th{font-size:.77rem;font-weight:600;color:var(--text-2);padding:14px 18px;letter-spacing:0;text-transform:none;background:var(--thead);cursor:default}
 th[onclick]{cursor:pointer}
 th:nth-child(2){width:30%}th:nth-child(3){width:108px!important}
 td{padding:17px 18px;font-size:.88rem}
 tbody tr{animation:none}
-tbody tr:hover{background:#1b2026}
+tbody tr:hover{background:var(--row-hover)}
 .td-name{gap:12px}
 .td-name .icon{width:34px;height:34px}
 .td-name .ticker{font-size:.95rem;font-weight:650;letter-spacing:-.01em;line-height:1.4}
@@ -65,7 +86,7 @@ tbody tr:hover{background:#1b2026}
 .empty-state .btn{margin-top:18px}
 .add-row{display:none}
 .overlay{visibility:hidden}.overlay.open{visibility:visible}
-.modal{max-width:480px;padding:28px;background:var(--surface);box-shadow:0 24px 100px #0008}
+.modal{max-width:480px;padding:28px;background:var(--bg);border-radius:var(--rl);box-shadow:0 24px 80px #00000026}
 .modal-head{margin-bottom:24px}
 .modal-head .minfo .name{font-size:.8rem;margin-top:5px}
 .modal-close{min-width:36px;min-height:36px;border-radius:8px}
@@ -353,3 +374,19 @@ a.venue-chip:hover{border-color:var(--border-h);color:var(--text-1)}
 .venue-chip.on .venue-mark{box-shadow:0 0 0 1px var(--main)}
 @media(max-width:640px){.venue-roster{padding:15px 13px}.venue-grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:7px}}
 .pair-grid{display:grid;gap:16px}.pair-card{background:var(--surface);border:1px solid var(--border-h);border-radius:12px;padding:20px}.pair-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.pair-card h3{font-size:.95rem}.pair-card h3 small{color:var(--text-3);font-weight:400;margin-left:8px}.pair-balance{display:block;color:var(--text-3);font-size:.73rem;margin-top:6px}.pair-legs,.pair-form-legs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.pair-leg{padding:16px;background:var(--surface-2);border-radius:8px;min-width:0}.pair-leg-heading{display:flex;gap:12px;font-size:.85rem}.pair-leg-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;font-size:.74rem;color:var(--text-3)}.pair-leg-values b{display:block;color:var(--text-1);font-weight:500;font-variant-numeric:tabular-nums;margin-top:5px}.pair-leg small{display:block;color:var(--text-3);font-size:.69rem;margin-top:6px}.pair-net{display:flex;gap:24px;padding:14px 0;border-bottom:1px solid var(--border-h);font-size:.78rem;color:var(--text-2)}.pair-net b{margin-left:8px}.pair-strategy,.pair-thesis{font-size:.78rem;line-height:1.7;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.pair-thesis,.pair-thesis span{color:var(--text-3)}.pair-fieldset{border:1px solid var(--border-h);padding:16px;border-radius:8px;min-width:0}.pair-fieldset legend{font-size:.8rem;padding:0 8px}.modal:has(#pair-form){max-width:850px;width:850px}#pair-board>.form-help{margin:14px 0;line-height:1.8}@media(max-width:640px){.pair-legs,.pair-form-legs{grid-template-columns:1fr}.pair-card{padding:16px}.pair-net{flex-wrap:wrap;gap:10px}.pair-leg-heading{flex-wrap:wrap}}
+
+/* ── Toss-flavoured surfaces: rounded cards, soft edges, generous air ── */
+.table-wrap{border-radius:var(--rl);border:1px solid var(--border-h);background:var(--bg);box-shadow:var(--shadow-card);overflow:hidden}
+.table-wrap.scrolls{overflow-x:auto}
+th{border-bottom:1px solid var(--border-h)}
+tbody tr td{border-bottom:1px solid var(--border)}
+tbody tr:last-child td{border-bottom:0}
+.tab{border-radius:999px}
+.tab.active{background:var(--main);border-color:var(--main);color:var(--main-ink)}
+.tab.active .cnt{color:var(--main-ink);opacity:.75}
+.search-input,.field input,.field select,.field textarea{border-radius:var(--r)}
+.btn{border-radius:var(--r)}
+.overview{border-left:0;background:var(--surface);border-radius:var(--rl);padding:24px 26px}
+.venue-roster,.pair-card,.scenario-panel,.reflection-panel{border-radius:var(--rl)}
+.asset-symbol{border-radius:50%}
+.modal-close{border-radius:999px}

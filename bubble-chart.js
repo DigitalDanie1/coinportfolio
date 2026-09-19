@@ -105,7 +105,7 @@ function svgBubbles(data,mode,W,H){
 
     if(showSize){
       const sizeLabel=mode==='val'?'$'+fmt(n.val):fmt(n.mcap);
-      s+=`<text x="${n.x.toFixed(1)}" y="${(n.y+Math.min(n.r*0.55,26)).toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="#969ea9" font-family="'JetBrains Mono',monospace" font-size="${Math.min(n.r*0.22,9).toFixed(0)}">${sizeLabel}</text>`;
+      s+=`<text x="${n.x.toFixed(1)}" y="${(n.y+Math.min(n.r*0.55,26)).toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="var(--text-3)" font-family="'JetBrains Mono',monospace" font-size="${Math.min(n.r*0.22,9).toFixed(0)}">${sizeLabel}</text>`;
     }
   }
   s+='</svg>';

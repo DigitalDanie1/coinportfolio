@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>코인 포트폴리오</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<script>
+// Applied before first paint so the chosen theme never flashes the other one.
+(function(){try{
+  var saved=localStorage.getItem('coin-portfolio-theme');
+  var dark=saved?saved==='dark':false;
+  if(dark)document.documentElement.setAttribute('data-theme','dark');
+}catch(e){}})();
+</script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -200,6 +210,7 @@ tr{animation:fadeIn .25s ease both}
   <header>
     <h1>코인 포트폴리오</h1>
     <div class="right">
+      <button class="btn theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="테마 전환" title="테마 전환">☀</button>
       <button class="btn" onclick="openAutoConnections()">자동 연결</button>
       <button class="btn" onclick="refresh()">지금 갱신</button>
       <span class="ts" id="clock"></span>
@@ -428,6 +439,23 @@ function load() {
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
+
+// ═══ THEME ══════════════════════════════
+const THEME_KEY = 'coin-portfolio-theme';
+function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+function applyTheme(theme) {
+  const dark = theme === 'dark';
+  document.documentElement.toggleAttribute('data-theme', dark);
+  if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = dark ? '🌙' : '☀';
+  try { localStorage.setItem(THEME_KEY, theme); } catch(e) {}
+  // The charts draw their own colours, so they need a repaint on a theme change.
+  if (currentTab === 'sector' && typeof renderSectorChart === 'function') renderSectorChart();
+  else if (currentTab === 'compare' && typeof renderCompareChart === 'function') renderCompareChart();
+  else if (currentTab === 'bubble' && typeof renderBubbleChart === 'function') renderBubbleChart();
+}
+function toggleTheme() { applyTheme(currentTheme() === 'dark' ? 'light' : 'dark'); }
 
 // ═══ CATEGORIES ═════════════════════════
 function catList() { return categories.length ? categories : DEFAULT_CATEGORIES; }
@@ -1150,6 +1178,7 @@ importDexLinks();
 initFarmingPairs();
 initScenario();
 initReflections();
+applyTheme(currentTheme());
 renderTabBar();
 setTab('all');
 renderHero();
