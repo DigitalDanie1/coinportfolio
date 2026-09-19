@@ -747,8 +747,8 @@ function positionMarks(id) {
   const h = holdings[id];
   if (!h) return [];
   const marks = [];
-  if (h.qty > 0 && h.avgPrice > 0) marks.push({ price: h.avgPrice, label: '내 평단', color: 'var(--text-1)' });
-  if (h.targetPrice > 0) marks.push({ price: h.targetPrice, label: '목표 매도', color: 'var(--green)' });
+  if (h.qty > 0 && h.avgPrice > 0) marks.push({ price: h.avgPrice, label: '매수', color: 'var(--text-1)' });
+  if (h.targetPrice > 0) marks.push({ price: h.targetPrice, label: '매도', color: 'var(--green)' });
   return marks;
 }
 function sparkModal(prices, uid, marks=[]) {
@@ -939,7 +939,7 @@ function openDetail(id) {
     <div class="mdivider">내 포지션</div>
     <div class="field"><label>보유 수량</label><input type="text" inputmode="decimal" id="f-qty" class="num-input" value="${groupNumber(h.qty)}" placeholder="0"></div>
     <div class="field"><label>평균 매수가 ($)</label><input type="text" inputmode="decimal" id="f-avg" class="num-input" value="${groupNumber(h.avgPrice)}" placeholder="0"></div>
-    <div class="field"><label>목표 매도가 ($)</label><input type="text" inputmode="decimal" id="f-target" class="num-input" value="${groupNumber(h.targetPrice)}" placeholder="선택 · 차트에 선으로 표시"></div>
+    <div class="field"><label>매도가 ($)</label><input type="text" inputmode="decimal" id="f-target" class="num-input" value="${groupNumber(h.targetPrice)}" placeholder="선택 · 차트에 선으로 표시"></div>
     ${showManual?`<div class="field"><label>현재가 수동입력 ($)</label><input type="text" inputmode="decimal" id="f-manual" class="num-input" value="${groupNumber(h.manualPrice)}" placeholder="API 데이터 없음 — 수동 입력"></div>`:''}
     <div id="calc-area"></div>
     <div class="mdivider">매수 이유</div>
