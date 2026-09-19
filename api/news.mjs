@@ -1,4 +1,4 @@
-import { service, init, cors, sanitize, errJson } from './_service.js';
+import { service, init, cors, sanitize, errJson } from './_service.mjs';
 
 export default async function handler(req, res) {
   cors(res);

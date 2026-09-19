@@ -1,4 +1,4 @@
-import { service, init, cors, sanitize, errJson } from './_service.js';
+import { service, init, cors, errJson } from './_service.mjs';
 
 export default async function handler(req, res) {
   cors(res);
@@ -6,7 +6,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST' || req.headers['x-portfolio-client'] !== '1') return res.status(403).json({ error: 'Forbidden' });
   try {
     await init();
-    const result = await service.markets(sanitize((req.body || {}).coins));
-    res.json(result);
+    res.json(await service.perpMarkets());
   } catch (e) { errJson(res, e); }
 }
