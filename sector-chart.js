@@ -8,6 +8,15 @@ const CATS={
   etc:{label:'기타',color:'#5b8def',order:2},
   stocks:{label:'주식',color:'#a78bfa',order:3},
 };
+// Per-coin colours so individual lines stay identifiable; category colour alone makes them one blur.
+const PALETTE=[
+  '#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e',
+  '#ef4444','#f59e0b','#06b6d4','#ec4899','#84cc16',
+  '#14b8a6','#f97316','#8b5cf6','#10b981','#e879f9',
+  '#facc15','#38bdf8','#fb923c','#a3e635','#2dd4bf',
+  '#818cf8','#fbbf24','#34d399','#f472b6','#67e8f9',
+  '#d946ef','#4ade80','#fca5a5','#93c5fd','#fde047',
+];
 let vis={main:true,fomo:true,etc:true,stocks:true};
 let mode='sector';
 
@@ -26,6 +35,8 @@ function build(){
     groups[cat].coins.push({id:coin.id,ticker:coin.ticker,name:coin.name,color:groups[cat].color,norm,last:norm[norm.length-1]});
     groups[cat].series.push(norm);
   }
+  let n=0;
+  for(const g of Object.values(groups))for(const c of g.coins)c.lineColor=PALETTE[n++ % PALETTE.length];
   for(const g of Object.values(groups)){
     if(!g.series.length) continue;
     const maxLen=Math.max(...g.series.map(s=>s.length));
@@ -120,14 +131,14 @@ function svgChart(groups){
     for(const[cat,g]of sorted){
       for(const c of g.coins){
         const ds=downsample(c.norm,140);
-        line(ds,g.color,1.5,null,.55);
+        line(ds,c.lineColor,1.5,null,.9);
       }
     }
     // draw sector avg as dashed overlay
     for(const[cat,g]of sorted){
       if(g.avg.length<2) continue;
       const pts=g.avg.map((v,i)=>`${tx(i).toFixed(1)},${ty(v).toFixed(1)}`);
-      s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${g.color}" stroke-width="2.5" stroke-dasharray="6,4" stroke-linejoin="round" opacity=".85"/>`;
+      s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${g.color}" stroke-width="2.5" stroke-dasharray="6,4" stroke-linejoin="round" opacity=".55"/>`;
     }
   }else{
     for(const[cat,g]of sorted){
@@ -139,16 +150,21 @@ function svgChart(groups){
   const endLabels=[];
   for(const[cat,g]of sorted){
     if(mode==='sector'){
-      if(g.avg.length>1) endLabels.push({y:ty(g.avg[g.avg.length-1]),label:g.label,color:g.color,val:g.change});
+      if(g.avg.length>1) endLabels.push({y:ty(g.avg[g.avg.length-1]),label:g.label,color:g.color});
+    }else{
+      for(const c of g.coins) endLabels.push({y:ty(c.last),label:c.ticker,color:c.lineColor});
     }
   }
   endLabels.sort((a,b)=>a.y-b.y);
-  // resolve overlaps
+  // Nudge collided labels apart, then pull the stack back inside the plot if it overran.
+  const gap=mode==='coins'?11:16;
   for(let i=1;i<endLabels.length;i++){
-    if(endLabels[i].y-endLabels[i-1].y<16) endLabels[i].y=endLabels[i-1].y+16;
+    if(endLabels[i].y-endLabels[i-1].y<gap) endLabels[i].y=endLabels[i-1].y+gap;
   }
+  const overflow=endLabels.length?endLabels[endLabels.length-1].y-(H-p.b):0;
+  if(overflow>0)for(const el of endLabels)el.y-=overflow;
   for(const el of endLabels){
-    s+=`<text x="${W-p.r+8}" y="${el.y+3}" fill="${el.color}" font-family="system-ui" font-size="10" font-weight="600">${esc(el.label)}</text>`;
+    s+=`<text x="${W-p.r+8}" y="${el.y+3}" fill="${el.color}" font-family="${mode==='coins'?"'JetBrains Mono',monospace":'system-ui'}" font-size="${mode==='coins'?9:10}" font-weight="600">${esc(el.label)}</text>`;
   }
 
   s+='</svg>';
@@ -180,7 +196,7 @@ function render(){
       ranking+=`<div class="rank-group"><span class="rank-label" style="color:${g.color}">${esc(g.label)}</span><div class="rank-items">`;
       for(const c of sorted){
         const v=c.last,vs=(v>=0?'+':'')+v.toFixed(1)+'%';
-        ranking+=`<span class="rank-item ${v>=0?'up':'down'}">${esc(c.ticker)} <b>${vs}</b></span>`;
+        ranking+=`<span class="rank-item ${v>=0?'up':'down'}"><i class="rank-dot" style="background:${c.lineColor}"></i>${esc(c.ticker)} <b>${vs}</b></span>`;
       }
       ranking+='</div></div>';
     }

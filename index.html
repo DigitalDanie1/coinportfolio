@@ -751,6 +751,10 @@ function openEdit(id) {
     </div>
     <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="e-gecko" value="${coin.gecko?.startsWith('auto:')?'':coin.gecko||''}" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
     <div class="field"><label>차트 소스 (선택)</label><input type="text" id="e-chart" value="${escapeHTML(coin.chartSrc||'')}" placeholder="BINANCE:BTCUSDT 또는 dexscreener.com 링크"></div>
+    <div class="field"><label>DEX 페어</label>
+      <div class="dex-find"><button type="button" class="btn" onclick="findDexPairs('${id}')">DEX Screener에서 ${coin.dex?'다시 ':''}찾기</button><span class="dex-find-now">${coin.dex?escapeHTML(coin.dex.chain+' · '+coin.dex.pair.slice(0,10)+'…'):'연결 안 됨'}</span>${coin.dex?`<button type="button" class="btn" onclick="clearDexPair('${id}')">해제</button>`:''}</div>
+      <div id="dex-results" class="dex-results"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-save" onclick="submitEdit('${id}')">저장</button>
       <button class="btn-del" onclick="openDetail('${id}')">취소</button>
@@ -758,6 +762,27 @@ function openEdit(id) {
   `;
   showModal();
 }
+
+async function findDexPairs(id) {
+  const coin=coins.find(c=>c.id===id); if(!coin) return;
+  const box=document.getElementById('dex-results'); if(!box) return;
+  box.innerHTML='<p class="form-help">DEX Screener 검색 중…</p>';
+  try{
+    const r=await dataAPI('/api/dexsearch',{query:coin.ticker});
+    if(!r.candidates?.length){box.innerHTML=`<p class="form-help">${escapeHTML(coin.ticker)} 페어를 찾지 못했다. 차트 소스에 링크를 직접 넣어도 된다.</p>`;return;}
+    box.innerHTML=r.candidates.map((c,i)=>`<button type="button" class="dex-cand" onclick="pickDexPair('${id}',${i})">
+      <span class="dc-chain">${escapeHTML(c.chain)}</span>
+      <span class="dc-main"><b>${escapeHTML(c.symbol)}${c.quote?'/'+escapeHTML(c.quote):''}</b><small>${escapeHTML(c.name||'')}${c.dexId?' · '+escapeHTML(c.dexId):''}</small></span>
+      <span class="dc-liq">유동성 ${c.liquidity===null?'—':'$'+Math.round(c.liquidity).toLocaleString()}</span></button>`).join('');
+    window.__dexCandidates=r.candidates;
+  }catch{box.innerHTML='<p class="form-help">DEX Screener 검색에 실패했다. 잠시 뒤 다시 시도해라.</p>';}
+}
+function pickDexPair(id, index) {
+  const c=(window.__dexCandidates||[])[index]; if(!c) return;
+  updateCoin(id,{dex:{chain:c.chain,pair:c.pair,token:c.token}});
+  closeModal(); renderAll(); loadData();
+}
+function clearDexPair(id) { updateCoin(id,{dex:null}); openEdit(id); }
 
 function submitEdit(id) {
   const ticker=(document.getElementById('e-ticker').value||'').trim().toUpperCase();
