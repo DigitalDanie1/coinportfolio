@@ -56,6 +56,14 @@ function applyMarketResponse(response){
     const previous=marketByCoin[id];
     if(incoming.current_price==null&&previous?.current_price!=null)marketByCoin[id]={...previous,stale:true,message:incoming.message};
     else marketByCoin[id]=incoming;
+    // The service refills only a few DEX histories per request and forgets them between cold
+    // starts, so keep the longer series we already hold rather than dropping back to none.
+    const kept=previous?.sparkline_in_7d?.price||[],fresh=marketByCoin[id]?.sparkline_in_7d?.price||[];
+    if(kept.length>fresh.length){
+      marketByCoin[id]={...marketByCoin[id],sparkline_in_7d:{price:kept},
+        price_change_percentage_7d_in_currency:marketByCoin[id].price_change_percentage_7d_in_currency??previous.price_change_percentage_7d_in_currency,
+        chartSource:marketByCoin[id].chartSource||previous.chartSource};
+    }
     const c=coins.find(x=>x.id===id);if(!c)continue;
     const d=marketByCoin[id];
     if(d.canonicalName)c.name=d.canonicalName;
