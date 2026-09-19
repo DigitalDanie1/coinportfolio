@@ -24,6 +24,7 @@ export function sanitize(list) {
     gecko: typeof x.gecko === 'string' ? x.gecko.slice(0, 150) : null,
     providerId: typeof x.providerId === 'string' ? x.providerId.slice(0, 150) : null,
     dex: x.dex ? { chain: String(x.dex.chain || '').slice(0, 40), pair: String(x.dex.pair || '').slice(0, 100), token: String(x.dex.token || '').slice(0, 100) } : null,
+    equity: x.equity && typeof x.equity.symbol === 'string' ? { symbol: x.equity.symbol.slice(0, 20) } : null,
     cat: String(x.cat || '')
   }));
 }

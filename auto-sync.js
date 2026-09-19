@@ -157,7 +157,7 @@ async function syncAutomatic(force=false){
   setStatus('load','시세 · 차트 · 뉴스 자동 동기화 중');
   try{
     const tasks=[
-      dataAPI('/api/markets',{coins:coins.map(c=>({id:c.id,ticker:c.ticker,name:c.name,gecko:c.gecko,providerId:c.providerId,dex:c.dex,cat:c.cat}))}).then(applyMarketResponse),
+      dataAPI('/api/markets',{coins:coins.map(c=>({id:c.id,ticker:c.ticker,name:c.name,gecko:c.gecko,providerId:c.providerId,dex:c.dex,equity:c.equity,cat:c.cat}))}).then(applyMarketResponse),
       dataAPI('/api/options',{positions:options.filter(p=>!p.closed).map(p=>({id:p.id,ticker:p.ticker,venue:p.venue,expiry:p.expiry,strike:p.strike,kind:p.kind,instrument:p.instrument}))}).then(result=>{for(const [id,d]of Object.entries(result.data)){optionQuotes[id]=d.mark==null&&optionQuotes[id]?.mark!=null?{...optionQuotes[id],stale:true,message:d.message}:d;}saveAutomaticCache();renderTable();}),
       dataAPI('/api/perps',{}).then(result=>{perpFeed=result;saveAutomaticCache();renderTable();}),
     ];

@@ -299,6 +299,7 @@ const DEFAULT_CATEGORIES = [
   { id:'main',   label:'메인',     color:'#c8ff00' },
   { id:'fomo',   label:'포모·밈',  color:'#ff6b35' },
   { id:'etc',    label:'기타',     color:'#5b8def' },
+  { id:'equities', label:'크립토 주식', color:'#a78bfa' },
 ];
 const CATEGORY_PALETTE = ['#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e','#f59e0b','#06b6d4','#ec4899','#14b8a6','#f97316','#8b5cf6','#e879f9'];
 const DEFAULTS = [
@@ -337,6 +338,25 @@ const DEFAULTS = [
   { id:'pear',  ticker:'PEAR',  name:'Pear Protocol',note:'DeFi',     gecko:'pear-protocol',     cat:'etc' },
   { id:'near',  ticker:'NEAR',  name:'NEAR Protocol',note:'L1',       gecko:'near',              cat:'etc' },
   { id:'stx',   ticker:'STX',   name:'Stacks',      note:'Bitcoin L2',gecko:'blockstack',        cat:'etc' },
+  { id:'mstr', ticker:'MSTR', name:'Strategy', note:'BTC 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:MSTR'} },
+  { id:'bmnr', ticker:'BMNR', name:'Bitmine Immersion', note:'ETH 트레저리', gecko:null, cat:'equities', equity:{symbol:'NYSE:BMNR'} },
+  { id:'bmnp', ticker:'BMNP', name:'BitMine 우선주', note:'ETH 트레저리', gecko:null, cat:'equities', equity:{symbol:'NYSE:BMNP'} },
+  { id:'strc', ticker:'STRC', name:'Strategy 우선주', note:'BTC 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:STRC'} },
+  { id:'asst', ticker:'ASST', name:'Strive', note:'BTC 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:ASST'} },
+  { id:'sbet', ticker:'SBET', name:'SharpLink', note:'ETH 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:SBET'} },
+  { id:'suig', ticker:'SUIG', name:'SUI Group', note:'SUI 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:SUIG'} },
+  { id:'fwdi', ticker:'FWDI', name:'Forward Industries', note:'SOL 트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:FWDI'} },
+  { id:'cyph', ticker:'CYPH', name:'Cypherpunk Technologies', note:'트레저리', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:CYPH'} },
+  { id:'usde-x', ticker:'USDE', name:'StablecoinX', note:'스테이블코인', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:USDE'} },
+  { id:'coin', ticker:'COIN', name:'Coinbase', note:'거래소', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:COIN'} },
+  { id:'glxy', ticker:'GLXY', name:'Galaxy Digital', note:'운용·트레이딩', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:GLXY'} },
+  { id:'secz', ticker:'SECZ', name:'Securitize', note:'토큰화', gecko:null, cat:'equities', equity:{symbol:'NYSE:SECZ'} },
+  { id:'riot', ticker:'RIOT', name:'Riot Platforms', note:'채굴', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:RIOT'} },
+  { id:'hut', ticker:'HUT', name:'Hut 8', note:'채굴', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:HUT'} },
+  { id:'cifr', ticker:'CIFR', name:'Cipher Mining', note:'채굴', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:CIFR'} },
+  { id:'wulf', ticker:'WULF', name:'TeraWulf', note:'채굴', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:WULF'} },
+  { id:'keel', ticker:'KEEL', name:'Keel Infrastructure', note:'인프라', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:KEEL'} },
+  { id:'ibit', ticker:'IBIT', name:'iShares Bitcoin Trust', note:'BTC 현물 ETF', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:IBIT'} },
 ];
 
 // ═══ STATE ══════════════════════════════
@@ -369,10 +389,14 @@ function load() {
       reflections = d.reflections && typeof d.reflections.text === 'string' ? d.reflections : null;
       scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
       categories = Array.isArray(d.categories) && d.categories.length ? d.categories : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-      // This book tracks coins only; a stocks category resolved tickers against Yahoo, so STX
-      // came back as Seagate rather than Stacks.
+      // The old stocks category priced a coin from its ticker, so STX came back as Seagate
+      // rather than Stacks. Equities are marked on the asset itself now.
       categories = categories.filter(c => c.id !== 'stocks');
       if (!categories.length) categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      // A default category added after this book was saved still needs somewhere to land.
+      for (const dc of DEFAULT_CATEGORIES)
+        if (!categories.some(c => c.id === dc.id) && DEFAULTS.some(x => x.cat === dc.id))
+          categories.push(JSON.parse(JSON.stringify(dc)));
       const defMap = {};
       for (const df of DEFAULTS) defMap[df.id] = df;
       // Push default corrections into saved coins, but never over a field the user edited.
@@ -385,6 +409,7 @@ function load() {
         if (df.name !== c.name && !mine.name) c.name = df.name;
         if (df.note !== c.note && !mine.note) c.note = df.note;
         if (df.dex && !c.dex && !mine.dex) c.dex = JSON.parse(JSON.stringify(df.dex));
+        if (df.equity && !c.equity) c.equity = JSON.parse(JSON.stringify(df.equity));
       }
       for (const df of DEFAULTS) {
         if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));

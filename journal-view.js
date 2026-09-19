@@ -99,7 +99,7 @@ async function openMarketChart(id){
   };
   if(manual)fill([manual]);
   try{
-    const result=await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId,dex:coin.dex}});
+    const result=await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId,dex:coin.dex,equity:coin.equity}});
     if(request!==chartRequest||!document.getElementById('chart-viewer'))return;
     const merged=[...(manual?[manual]:[]),...(result.sources||[])];
     if(manual&&merged.length===1)return;
@@ -179,7 +179,7 @@ async function connectDetailChart(coin){
     try{
       const sources=coin.dex
         ?[{type:'dex',url:`https://dexscreener.com/${coin.dex.chain}/${coin.dex.pair}`}]
-        :(await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId}})).sources||[];
+        :(await dataAPI('/api/chart',{asset:{id:coin.id,name:coin.name,ticker:coin.ticker,cat:coin.cat,gecko:coin.gecko,providerId:coin.providerId,equity:coin.equity}})).sources||[];
       if(document.getElementById('detail-chart-link')!==link)return;
       const hosts={dex:'dexscreener.com',tradingview:'www.tradingview.com'};
       const source=sources.find(s=>{
