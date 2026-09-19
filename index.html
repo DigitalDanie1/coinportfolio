@@ -227,6 +227,7 @@ tr{animation:fadeIn .25s ease both}
 
     </div>
     <div class="goal-bar" id="goal-bar" aria-live="polite"></div>
+    <div class="house-ladder" id="house-ladder" aria-live="polite"></div>
   </div>
     <aside class="overview" aria-label="시장 현황">
       <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
@@ -544,14 +545,37 @@ function formatTop(top) {
   return top < 1 ? top.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') : top < 10 ? top.toFixed(1) : Math.round(top);
 }
 const GOAL_KRW = 100e8; // 100억
+// Real transactions, not asking prices. Each is the figure the trade actually printed at.
+const HOUSE_LADDER = [
+  { krw: 21.9e8, name: '마포 래미안푸르지오', spec: '24평', when: '26.07' },
+  { krw: 29.4e8, name: '대치 은마', spec: '84㎡', when: '25.01' },
+  { krw: 34.8e8, name: '잠실 엘스', spec: '84㎡', when: '26.07' },
+  { krw: 63e8,  name: '반포 아크로리버파크', spec: '84㎡', when: '26.05' },
+  { krw: 110e8, name: '한남더힐', spec: '245㎡', when: '26.07' },
+];
+function renderHouseLadder(krw) {
+  const box = document.getElementById('house-ladder');
+  if (!box) return;
+  if (!(krw > 0)) { box.innerHTML = ''; return; }
+  const eok = n => (n / 1e8) % 1 === 0 ? (n / 1e8) + '억' : (n / 1e8).toFixed(1) + '억';
+  const cleared = HOUSE_LADDER.filter(h => krw >= h.krw);
+  const next = HOUSE_LADDER.find(h => krw < h.krw);
+  const best = cleared[cleared.length - 1];
+  const rows = [];
+  if (best) rows.push(`<span class="house-row got"><b>${escapeHTML(best.name)}</b> ${escapeHTML(best.spec)} · ${escapeHTML(eok(best.krw))} <i>살 수 있음</i></span>`);
+  if (next) rows.push(`<span class="house-row next"><b>${escapeHTML(next.name)}</b> ${escapeHTML(next.spec)} · ${escapeHTML(eok(next.krw))} <i>${escapeHTML(eok(next.krw - krw))} 더</i></span>`);
+  box.innerHTML = `<div class="house-head">집 사다리 <small>실거래가 · ${escapeHTML(cleared.length)}/${HOUSE_LADDER.length}</small></div>${rows.join('')}`;
+  box.title = HOUSE_LADDER.map(h => `${h.name} ${h.spec} ${eok(h.krw)} (${h.when} 실거래)`).join('\n');
+}
 function renderGoal(totalUsd) {
   const box = document.getElementById('goal-bar');
   if (!box) return;
   const rate = marketPulse?.usdKrw?.rate;
-  if (!rate || !(totalUsd > 0)) { box.innerHTML = ''; return; }
+  if (!rate || !(totalUsd > 0)) { box.innerHTML = ''; renderHouseLadder(0); return; }
   const krw = totalUsd * rate;
   const pct = krw / GOAL_KRW * 100;
   const remain = Math.max(GOAL_KRW - krw, 0);
+  renderHouseLadder(krw);
   const eok = n => (n / 1e8).toFixed(n / 1e8 >= 10 ? 0 : 2) + '억';
   const done = pct >= 100;
   const shown = pct < 0.01 && pct > 0 ? '0.01' : pct < 1 ? pct.toFixed(2) : pct < 10 ? pct.toFixed(1) : pct.toFixed(0);

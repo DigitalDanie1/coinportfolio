@@ -468,3 +468,16 @@ tbody tr:hover td{background:var(--row-hover)}
   .pulse-row .pulse-value{font-size:1.1rem}
   .household-rank{margin-top:0}
 }
+
+/* Landmark prices the total has cleared, and the next one up. */
+.house-ladder{margin-top:16px;display:grid;gap:5px;cursor:help}
+.house-ladder:empty{display:none}
+.house-head{font-size:.78rem;font-weight:600;color:var(--text-2)}
+.house-head small{font-weight:550;color:var(--text-3);margin-left:6px}
+.house-row{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;font-size:.81rem;color:var(--text-2);font-variant-numeric:tabular-nums}
+.house-row b{font-weight:650;color:var(--text-1)}
+.house-row i{font-style:normal;font-size:.73rem;font-weight:650;padding:2px 8px;border-radius:999px}
+.house-row.got i{color:var(--green);background:color-mix(in srgb,var(--green) var(--signal-tint),var(--bg))}
+.house-row.next{color:var(--text-3)}
+.house-row.next b{color:var(--text-2);font-weight:600}
+.house-row.next i{color:var(--text-3);background:var(--surface-2)}
