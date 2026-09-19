@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>코인 포트폴리오</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#09090b;--surface:#111114;--surface-2:#1a1a1f;--surface-3:#222228;
+  --border:#ffffff12;--border-h:#ffffff22;
+  --text-1:#f0f0f5;--text-2:#b0b0ba;--text-3:#72727e;
+  --green:#22c55e;--red:#ef4444;--green-dim:#22c55e30;--red-dim:#ef444430;
+  --main:#c8ff00;--fomo:#ff6b35;--etc:#5b8def;--stocks:#a78bfa;
+  --r:10px;--rl:14px;
+}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text-1);font-family:'Inter',system-ui,sans-serif;line-height:1.5;word-break:keep-all;min-height:100vh;padding:0 16px 80px}
+.mono{font-family:'JetBrains Mono',monospace}
+.shell{max-width:980px;margin:0 auto}
+
+/* ── HEADER ── */
+header{padding:40px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{font-size:1.2rem;font-weight:600;letter-spacing:-.02em;color:var(--text-1)}
+header .right{display:flex;align-items:center;gap:12px}
+header .ts{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-3)}
+.btn{background:none;border:1px solid var(--border-h);color:var(--text-2);font-size:.72rem;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn:hover{border-color:var(--text-3);color:var(--text-2)}
+
+/* ── HERO ── */
+.hero{padding:28px 0 24px}
+.hero-val{font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:600;letter-spacing:-.04em;line-height:1.1;color:var(--text-1)}
+.hero-sub{display:flex;align-items:center;gap:16px;margin-top:8px;flex-wrap:wrap}
+.hero-change{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:500;padding:3px 10px;border-radius:6px}
+.hero-change.up{color:var(--green);background:var(--green-dim)}
+.hero-change.down{color:var(--red);background:var(--red-dim)}
+.hero-change.flat{color:var(--text-3);background:var(--surface-2)}
+.hero-meta{font-size:.78rem;color:var(--text-3)}
+.hero-meta b{color:var(--text-1);font-weight:500}
+.status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;color:var(--text-3)}
+.status-pill .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.status-pill .dot.ok{background:var(--green)}.status-pill .dot.err{background:var(--red)}
+.status-pill .dot.load{background:var(--main);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:2px;padding:4px;background:var(--surface);border-radius:10px;margin-bottom:20px;width:fit-content}
+.tab{background:none;border:none;color:var(--text-3);font-size:.8rem;font-weight:500;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.tab:hover{color:var(--text-2)}
+.tab.active{background:var(--surface-3);color:var(--text-1)}
+.tab .cnt{font-family:'JetBrains Mono',monospace;font-size:.68rem;margin-left:4px;opacity:.6}
+
+/* ── TABLE ── */
+.table-wrap{border:1px solid var(--border-h);border-radius:var(--rl);overflow:hidden;background:var(--surface)}
+table{width:100%;border-collapse:collapse}
+thead{position:sticky;top:0;z-index:2}
+th{background:var(--surface);font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);padding:12px 14px;text-align:left;border-bottom:1px solid var(--border-h);cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s}
+th:hover{color:var(--text-2)}
+th.sorted{color:var(--text-1)}
+th .arrow{display:inline-block;margin-left:3px;font-size:.5rem;opacity:.5}
+th.sorted .arrow{opacity:1}
+th.r{text-align:right}
+td{padding:14px 14px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:.88rem}
+tr{transition:background .1s;cursor:pointer}
+tr:hover{background:var(--surface-2)}
+tr:last-child td{border-bottom:none}
+
+.td-num{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--text-3);width:36px;text-align:center}
+.td-name{display:flex;align-items:center;gap:10px;min-width:0}
+.td-name .icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.td-name .icon img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%}
+.td-name .icon .fb{font-family:'JetBrains Mono',monospace;font-size:.5rem;font-weight:600;color:var(--bg);letter-spacing:.02em}
+.td-name .labels{display:flex;flex-direction:column;min-width:0}
+.td-name .ticker{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;color:var(--text-1);letter-spacing:.02em;line-height:1.2}
+.td-name .subname{font-size:.7rem;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-spark{width:100px;padding:8px 10px}
+.td-spark svg{display:block;width:100%;height:100%}
+.td-spark-empty{color:var(--text-3);font-size:.55rem;text-align:center}
+
+.td-price{font-family:'JetBrains Mono',monospace;font-weight:500;text-align:right;white-space:nowrap}
+.td-price.dim{color:var(--text-3)}
+.td-chg{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:500;text-align:right;white-space:nowrap}
+.td-chg.up{color:var(--green)}.td-chg.down{color:var(--red)}.td-chg.flat{color:var(--text-3)}
+.td-mcap{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--text-2);text-align:right;white-space:nowrap}
+.td-hold{font-family:'JetBrains Mono',monospace;font-size:.82rem;font-weight:500;text-align:right;white-space:nowrap;color:var(--main)}
+.td-hold.empty{color:var(--text-3);font-weight:400}
+
+.cat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:2px}
+
+/* ── ADD ROW ── */
+.add-row{margin-top:12px;display:flex;gap:8px;justify-content:flex-end}
+.add-row .btn{padding:8px 18px;font-size:.76rem;border-radius:8px}
+.add-row .btn:hover{border-color:var(--main);color:var(--main)}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--surface-2);border:1px solid var(--border-h);border-radius:var(--rl);max-width:440px;width:calc(100% - 32px);max-height:calc(100vh - 40px);overflow-y:auto;padding:24px;transform:translateY(14px);transition:transform .25s ease}
+.overlay.open .modal{transform:translateY(0)}
+.modal::-webkit-scrollbar{width:4px}.modal::-webkit-scrollbar-thumb{background:var(--border-h);border-radius:2px}
+.modal-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.modal-head .icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden}
+.modal-head .icon img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%}
+.modal-head .icon .fb{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:600;color:var(--bg)}
+.modal-head .minfo{flex:1;min-width:0}
+.modal-head .minfo .ticker{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;line-height:1.2}
+.modal-head .minfo .name{font-size:.72rem;color:var(--text-3)}
+.modal-close{background:none;border:none;color:var(--text-3);font-size:1.1rem;cursor:pointer;padding:4px;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--text-1)}
+.btn-edit{background:none;border:1px solid var(--border-h);color:var(--text-3);font-size:.62rem;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn-edit:hover{border-color:var(--text-3);color:var(--text-2)}
+.modal-spark{width:100%;height:100px;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.modal-spark svg{width:100%;height:100%;display:block}
+.modal-spark-empty{width:100%;height:80px;background:var(--surface-3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.68rem;color:var(--text-3);margin-bottom:16px}
+.mdata{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-h);border-radius:var(--r);overflow:hidden;margin-bottom:20px}
+.mdata .md{background:var(--surface-3);padding:12px 14px}
+.mdata .md .mk{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px}
+.mdata .md .mv{font-family:'JetBrains Mono',monospace;font-size:.88rem;font-weight:500}
+.mdivider{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin:20px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border-h)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin-bottom:5px}
+.field input,.field select,.field textarea{background:var(--surface-3);border:1px solid var(--border-h);color:var(--text-1);font-family:'JetBrains Mono',monospace;font-size:.85rem;padding:10px 12px;border-radius:8px;width:100%;outline:none;transition:border-color .15s}
+.field textarea{font-family:'Inter',system-ui,sans-serif;font-size:.82rem;line-height:1.5;resize:vertical;min-height:64px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--main)}
+.field input::placeholder{color:var(--text-3)}
+.calc-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0}
+.calc-row .ck{font-size:.68rem;color:var(--text-3)}
+.calc-row .cv{font-family:'JetBrains Mono',monospace;font-size:.92rem;font-weight:500}
+.calc-row .cv.pos{color:var(--green)}.calc-row .cv.neg{color:var(--red)}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.btn-save{flex:1;background:var(--main);color:var(--bg);border:none;padding:11px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-size:.78rem;font-family:inherit;transition:opacity .15s}
+.btn-save:hover{opacity:.9}.btn-save:active{transform:scale(.98)}
+.btn-del{background:none;border:1px solid var(--red);color:var(--red);padding:11px 16px;border-radius:8px;cursor:pointer;font-size:.72rem;font-family:inherit;transition:all .15s}
+.btn-del:hover{background:var(--red);color:#fff}
+.radio-group{display:flex;gap:8px;flex-wrap:wrap}
+.radio-group label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.72rem;color:var(--text-2);padding:6px 12px;border:1px solid var(--border-h);border-radius:6px;transition:all .15s}
+.radio-group label:has(input:checked){border-color:var(--main);color:var(--text-1);background:var(--surface-3)}
+.radio-group input{display:none}
+.change{font-family:'JetBrains Mono',monospace;font-size:.74rem;font-weight:500;white-space:nowrap}
+.change.up{color:var(--green)}.change.down{color:var(--red)}.change.flat{color:var(--text-3)}
+
+/* ── SKELETON ── */
+@keyframes shimmer{from{background-position:-200px 0}to{background-position:calc(200px + 100%) 0}}
+.skel{background:linear-gradient(90deg,var(--surface-2) 0%,var(--surface-3) 40%,var(--surface-2) 80%);background-size:200px 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:4px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+tr{animation:fadeIn .25s ease both}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .td-mcap{display:none}
+  th:nth-child(6){display:none}
+  .td-spark{width:72px}
+}
+@media(max-width:640px){
+  header{padding:28px 0 0}
+  .hero-val{font-size:1.8rem}
+  .tab-bar{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .td-spark{display:none}
+  th:nth-child(3){display:none}
+  .td-hold{display:none}
+  th:nth-child(7){display:none}
+  td{padding:10px 10px}
+  th{padding:8px 10px}
+  .modal{max-width:100%;width:100%;border-radius:16px 16px 0 0;margin-top:auto;max-height:90vh}
+  .overlay{align-items:flex-end}
+}
+@media(max-width:380px){
+  .td-mcap{display:none}
+  th:nth-child(6){display:none}
+}
+</style>
+<link rel="stylesheet" href="refinement.css">
+</head>
+<body>
+<nav class="workspace-nav" aria-label="작업 공간">
+  <a class="workspace-brand" href="#" onclick="setWorkspaceView('portfolio');return false">PORTFOLIO<span>나의 투자 노트</span></a>
+  <div class="workspace-nav-label">WORKSPACE</div>
+  <div class="workspace-nav-items">
+    <button type="button" data-workspace="portfolio" aria-current="page" onclick="setWorkspaceView('portfolio')">포트폴리오</button>
+    <button type="button" data-workspace="farming" onclick="setWorkspaceView('farming')">DEX PERP Farming</button>
+    <button type="button" data-workspace="options" onclick="setWorkspaceView('options')">Options</button>
+    <button type="button" data-workspace="scenario" onclick="setWorkspaceView('scenario')">시장 시나리오</button>
+    <button type="button" data-workspace="principles" onclick="setWorkspaceView('principles')">투자 원칙 · 복기</button>
+  </div>
+  <p class="workspace-nav-hint">시세와 기록을<br>한곳에서 관리하세요.</p>
+</nav>
+<main class="shell">
+  <header>
+    <h1>코인 포트폴리오</h1>
+    <div class="right">
+      <button class="btn" onclick="openAutoConnections()">자동 연결</button>
+      <button class="btn" onclick="refresh()">지금 갱신</button>
+      <span class="ts" id="clock"></span>
+    </div>
+  </header>
+  <div class="automation-banner"><span id="auto-status" role="status">자동 데이터 연결 중…</span><span>직접 관리: 시나리오 · 원칙·복기 · Thesis · Conviction</span></div>
+  <section class="hero" id="hero" aria-label="포트폴리오 요약">
+    <div>
+    <div class="hero-label">현물 보유 자산 <span class="mono">· USD</span></div>
+    <div class="hero-val" id="hero-val">$0.00</div>
+    <div class="hero-sub">
+      <span class="hero-change flat" id="hero-chg">—</span>
+      <span class="hero-meta" id="hero-meta"></span>
+
+    </div>
+  </div>
+    <aside class="overview" aria-label="종목 현황">
+      <div class="overview-title">종목 현황</div>
+      <div class="overview-grid">
+        <div><span class="overview-value mono" id="summary-all">0</span><span class="overview-label">전체 종목</span></div>
+        <div><span class="overview-value mono" id="summary-held">0</span><span class="overview-label">보유 종목</span></div>
+        <div><span class="overview-value mono" id="summary-linked">0</span><span class="overview-label">시세 연결</span></div>
+      </div>
+      <p class="overview-note">종목을 선택해 보유 수량과 투자 메모를 관리하세요.</p>
+    </aside>
+  </section>
+  <section id="workspace-scenario" hidden class="scenario-panel" aria-labelledby="scenario-heading">
+    <div class="scenario-header"><div><h2 id="scenario-heading">나의 시장 시나리오</h2><p>예상 흐름, 자산별 목표, 조정 구간과 뷰를 바꿀 조건을 기록하세요.</p></div><span id="scenario-status" role="status">직접 작성 · 자동 저장</span></div>
+    <label class="sr-only" for="market-scenario">나의 시장 시나리오</label>
+    <textarea id="market-scenario" rows="7" placeholder="기본 시나리오: 시장이 어떤 순서로 움직일 것인가
+
+자산별 목표와 예상 조정 구간:
+
+다음 상승의 조건:
+
+이 뷰를 바꿀 조건:" oninput="saveScenario(this.value)"></textarea>
+    <div class="scenario-footer"><span>자동 데이터 갱신이 이 내용을 변경하지 않습니다.</span><span id="scenario-count">0자</span></div>
+  </section>
+  <details id="workspace-principles" hidden class="reflection-panel" open>
+    <summary><span><strong>투자 원칙 · 복기</strong><small>시장에서 배운 점과 다음 매매에 적용할 원칙</small></span><span class="reflection-toggle">접기 / 펼치기</span></summary>
+    <div class="reflection-content">
+      <div class="reflection-toolbar"><div class="reflection-modes" role="group" aria-label="투자 원칙과 복기 보기 방식"><button type="button" class="btn" id="reflection-read" aria-pressed="true" onclick="setReflectionMode('read')">읽기</button><button type="button" class="btn" id="reflection-edit" aria-pressed="false" onclick="setReflectionMode('edit')">작성</button></div><span id="reflection-status" role="status">직접 작성 · 자동 저장</span></div>
+      <div id="reflection-preview" class="reflection-preview"></div>
+      <div id="reflection-editor" hidden><label class="sr-only" for="reflection-text">투자 원칙과 복기 작성</label><textarea id="reflection-text" rows="14" placeholder="## 이번 장에서 배운 점
+- 놓친 기회와 그 이유
+
+## 다음에 지킬 원칙
+- 진입·보유·정리 기준" oninput="saveReflections(this.value)"></textarea><p class="reflection-help">## 제목 · - 목록 · **강조**로 정리할 수 있습니다.</p></div>
+      <div class="scenario-footer"><span>내 기록은 자동 시세·뉴스 갱신과 별도로 보관됩니다.</span><span id="reflection-count">0자</span></div>
+    </div>
+  </details>
+  <section id="workspace-positions" aria-label="포지션 관리">
+  <div class="section-heading">
+    <div><h2 id="book-title">관심 종목</h2><p id="book-description">Thesis와 확신 수준을 기록하고 변화를 확인하세요.</p></div>
+    <button class="btn btn-primary" id="add-position" onclick="addCurrentPosition()">+ 종목 추가</button>
+  </div>
+  <div class="workspace-toolbar">
+  <nav class="tab-bar" id="tab-bar" aria-label="종목 카테고리">
+    <button class="tab active" onclick="setTab('all')">전체 <span class="cnt" id="cnt-all">0</span></button>
+    <button class="tab" onclick="setTab('main')">메인 <span class="cnt" id="cnt-main">0</span></button>
+    <button class="tab" onclick="setTab('fomo')">포모·밈 <span class="cnt" id="cnt-fomo">0</span></button>
+    <button class="tab" onclick="setTab('etc')">기타 <span class="cnt" id="cnt-etc">0</span></button>
+    <button class="tab" onclick="setTab('stocks')">주식 <span class="cnt" id="cnt-stocks">0</span></button>
+    <button class="tab" onclick="setTab('farming')">DEX PERP Farming <span class="cnt" id="cnt-farming">0</span></button>
+    <button class="tab" onclick="setTab('options')">Options <span class="cnt" id="cnt-options">0</span></button>
+    <button class="tab" onclick="setTab('sector')">섹터 비교</button>
+    <button class="tab" onclick="setTab('compare')">Compare</button>
+    <button class="tab" onclick="setTab('bubble')">Bubble</button>
+  </nav>
+  <div class="filter-tools">
+    <input class="search-input" id="asset-search" type="search" aria-label="종목 검색" placeholder="종목명, 티커 검색" oninput="renderTable()">
+    <label class="holding-filter"><input id="held-only" type="checkbox" onchange="renderTable()"> 보유만</label>
+  </div>
+  </div>
+  <div id="pair-board" hidden></div>
+  <div id="book-summary" class="book-summary" aria-live="polite"></div>
+  <div id="sector-panel" hidden></div>
+  <div id="compare-panel" hidden></div>
+  <div id="bubble-panel" hidden></div>
+  <div class="table-wrap" tabindex="0" aria-label="포지션 목록, 가로로 스크롤할 수 있습니다">
+    <table aria-label="관심 종목 시세 및 보유 가치">
+      <thead id="table-head">
+        <tr>
+          <th style="width:36px" onclick="sortBy('num')">#<span class="arrow">▼</span></th>
+          <th onclick="sortBy('name')">종목<span class="arrow">▼</span></th>
+          <th style="width:100px">7일</th>
+          <th class="r" onclick="sortBy('price')">가격<span class="arrow">▼</span></th>
+          <th class="r" onclick="sortBy('chg')">24H<span class="arrow">▼</span></th>
+          <th class="r" onclick="sortBy('mcap')">마켓캡<span class="arrow">▼</span></th>
+          <th class="r" onclick="sortBy('hold')">보유 가치<span class="arrow">▼</span></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="table-footer"><span id="result-count" aria-live="polite"></span><span class="status-pill" id="status" role="status"><span class="dot load"></span> 로딩 중…</span></div>
+  <div class="add-row">
+    <button class="btn" onclick="openAdd('main')">+ 메인 추가</button>
+    <button class="btn" onclick="openAdd('fomo')">+ 포모 추가</button>
+    <button class="btn" onclick="openAdd('etc')">+ 기타 추가</button>
+    <button class="btn" onclick="openAdd('stocks')">+ 주식 추가</button>
+  </div>
+  </section>
+</main>
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-body" role="dialog" aria-modal="true" aria-label="종목 관리" tabindex="-1"></div>
+</div>
+<script>
+// ═══ CONSTANTS ═══════════════════════════
+const STORE_KEY = 'coin-portfolio-v2';
+const GECKO_BASE = 'https://api.coingecko.com/api/v3';
+const CAT = {
+  main:{ label:'메인', color:'var(--main)' },
+  fomo:{ label:'포모·밈', color:'var(--fomo)' },
+  etc: { label:'기타', color:'var(--etc)' },
+  stocks:{ label:'주식', color:'var(--stocks)' },
+};
+const CAT_HEX = { main:'#c8ff00', fomo:'#ff6b35', etc:'#5b8def', stocks:'#a78bfa' };
+const DEFAULTS = [
+  { id:'var',   ticker:'VAR',   name:'Variational', note:'Perp DEX',  gecko:'variational',       cat:'main' },
+  { id:'zec',   ticker:'ZEC',   name:'Zcash',       note:'Privacy',   gecko:'zcash',             cat:'main' },
+  { id:'fold',  ticker:'FOLD',  name:'Interfold',   note:'DeFi',      gecko:'manifold-finance',  cat:'main' },
+  { id:'zama',  ticker:'ZAMA',  name:'Zama',        note:'FHE',       gecko:'zama',              cat:'main' },
+  { id:'drv',   ticker:'DRV',   name:'Derive',      note:'Options',   gecko:'derive',            cat:'main' },
+  { id:'arb',   ticker:'ARB',   name:'Arbitrum',    note:'L2',        gecko:'arbitrum',          cat:'main' },
+  { id:'codec', ticker:'CODEC', name:'Codec',       note:'DePIN',     gecko:'codec-flow',        cat:'main' },
+  { id:'uni',   ticker:'UNI',   name:'Uniswap',     note:'DEX',       gecko:'uniswap',           cat:'main' },
+  { id:'prlg',  ticker:'PRLG',  name:'프롤로그',    note:'Meme',      gecko:'prologue',          cat:'fomo' },
+  { id:'stonk', ticker:'STONK', name:'스통크',       note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'ubik',  ticker:'UBIK',  name:'UBIK',        note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'zzz',   ticker:'ZZZ',   name:'ZZZ',         note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'bun',   ticker:'BUN',   name:'BUN',         note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'purr-rh',  ticker:'PURR', name:'PURR',      note:'Robinhood', gecko:null,                cat:'fomo' },
+  { id:'purr-hev', ticker:'PURR', name:'PURR',      note:'HyperEVM',  gecko:null,                cat:'fomo' },
+  { id:'rock',  ticker:'ROCK',  name:'ROCK',        note:'Meme',      gecko:null,                cat:'fomo' },
+  { id:'zero',  ticker:'ZRO',   name:'LayerZero',   note:'Omnichain', gecko:'layerzero-2',       cat:'etc' },
+  { id:'cant',  ticker:'CANT',  name:'Canton',      note:'L1',        gecko:'canton-network',    cat:'etc' },
+  { id:'link',  ticker:'LINK',  name:'Chainlink',   note:'Oracle',    gecko:'chainlink',         cat:'etc' },
+  { id:'bp',    ticker:'BP',    name:'Backpack',    note:'Exchange',  gecko:null,                cat:'etc' },
+  { id:'aztec', ticker:'AZTEC', name:'Aztec',       note:'Privacy L2',gecko:null,                cat:'etc' },
+  { id:'rail',  ticker:'RAIL',  name:'Railgun',     note:'Privacy',   gecko:'railgun',           cat:'etc' },
+  { id:'pear',  ticker:'PEAR',  name:'Pear Protocol',note:'DeFi',     gecko:'pear-protocol',     cat:'etc' },
+  { id:'near',  ticker:'NEAR',  name:'NEAR Protocol',note:'L1',       gecko:'near',              cat:'etc' },
+  { id:'stx',   ticker:'STX',   name:'Stacks',      note:'Bitcoin L2',gecko:'blockstack',        cat:'etc' },
+];
+
+// ═══ STATE ══════════════════════════════
+let coins = [];
+let holdings = {};
+let farming = [];
+let farmingPairs = null;
+let options = [];
+let scenario = {text:'',updatedAt:null};
+let reflections = null;
+let appliedImports = [];
+let mkt = {};
+let currentTab = 'all';
+let sortCol = 'num';
+let sortAsc = true;
+
+// ═══ DATA LAYER ═════════════════════════
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      coins = d.coins || [];
+      appliedImports = Array.isArray(d.appliedImports) ? d.appliedImports : [];
+      holdings = d.holdings || {};
+      farming = Array.isArray(d.farming) ? d.farming : [];
+      farmingPairs = Array.isArray(d.farmingPairs) ? d.farmingPairs : null;
+      options = Array.isArray(d.options) ? d.options : [];
+      reflections = d.reflections && typeof d.reflections.text === 'string' ? d.reflections : null;
+      scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
+      const defMap = {};
+      for (const df of DEFAULTS) defMap[df.id] = df;
+      for (const c of coins) {
+        const df = defMap[c.id];
+        if (!df) continue;
+        if ('gecko' in df && df.gecko !== c.gecko) c.gecko = df.gecko;
+        if (df.ticker !== c.ticker) c.ticker = df.ticker;
+        if (df.name !== c.name) c.name = df.name;
+        if (df.note !== c.note) c.note = df.note;
+      }
+      for (const df of DEFAULTS) {
+        if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));
+      }
+      save();
+      return;
+    }
+  } catch(e) {}
+  coins = JSON.parse(JSON.stringify(DEFAULTS));
+  holdings = {};
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+}
+
+function addCoin(c) { coins.push(c); save(); }
+function removeCoin(id) { coins = coins.filter(c => c.id !== id); delete holdings[id]; save(); }
+function updateCoin(id, updates) { const c = coins.find(x => x.id === id); if(c) Object.assign(c, updates); save(); }
+function setHolding(id, qty, avgPrice, manualPrice, reason) {
+  const prev = holdings[id] || {};
+  holdings[id] = { ...prev, qty:qty||0, avgPrice:avgPrice||0, manualPrice:manualPrice||0, reason: reason !== undefined ? reason : (prev.reason||'') };
+  save();
+}
+function coinsOf(cat) { return coins.filter(c => c.cat === cat); }
+function genId(ticker) { return ticker.toLowerCase() + '_' + Math.random().toString(36).slice(2,6); }
+function parseGeckoInput(val) {
+  if (!val) return null;
+  val = val.trim();
+  const m = val.match(/coingecko\.com\/(?:[a-z]{2}\/)?coins\/([a-z0-9_-]+)/i);
+  if (m) return m[1].toLowerCase();
+  return val.replace(/^https?:\/\//, '').toLowerCase();
+}
+
+// ═══ API ════════════════════════════════
+async function geckoFetch(path) {
+  const r = await fetch(GECKO_BASE + path, { headers:{ Accept:'application/json' }, signal:AbortSignal.timeout(15000) });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+async function resolveIds() {
+  const unknown = coins.filter(c => !c.gecko);
+  if (!unknown.length) return;
+  try {
+    const list = await geckoFetch('/coins/list');
+    const bySym = {};
+    for (const c of list) { const s = c.symbol.toLowerCase(); (bySym[s] = bySym[s] || []).push(c); }
+    for (const coin of unknown) {
+      const m = bySym[coin.ticker.toLowerCase()];
+      if (!m || !m.length) continue;
+      if (m.length === 1) { coin.gecko = m[0].id; continue; }
+      const nm = m.find(x => x.name.toLowerCase().includes(coin.name.toLowerCase()) || coin.name.toLowerCase().includes(x.name.toLowerCase()));
+      coin.gecko = nm ? nm.id : m[0].id;
+    }
+    save();
+  } catch(e) {}
+}
+
+async function fetchMarkets() {
+  const ids = [...new Set(coins.map(c=>c.gecko).filter(Boolean))];
+  if (!ids.length) return {};
+  const d = await geckoFetch(`/coins/markets?vs_currency=usd&ids=${ids.join(',')}&sparkline=true&price_change_percentage=7d&per_page=100&page=1`);
+  const map = {};
+  for (const x of d) map[x.id] = x;
+  return map;
+}
+
+// ═══ FORMAT ═════════════════════════════
+function fP(n) {
+  if (n==null) return '—';
+  if (n>=1e4) return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  if (n>=1000) return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (n>=1) return '$'+n.toFixed(2);
+  if (n>=.01) return '$'+n.toFixed(4);
+  if (n>=.0001) return '$'+n.toFixed(6);
+  return '$'+n.toExponential(2);
+}
+function fM(n) {
+  if (n==null) return '—';
+  if (n>=1e12) return '$'+(n/1e12).toFixed(2)+'T';
+  if (n>=1e9) return '$'+(n/1e9).toFixed(2)+'B';
+  if (n>=1e6) return '$'+(n/1e6).toFixed(1)+'M';
+  if (n>=1e3) return '$'+(n/1e3).toFixed(0)+'K';
+  return '$'+n.toFixed(0);
+}
+function fPct(n) { if (n==null) return '—'; return (n>=0?'+':'')+n.toFixed(1)+'%'; }
+function fQty(n) {
+  if (!n) return '0';
+  if (n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if (n>=1e4) return (n/1e3).toFixed(1)+'K';
+  return n.toLocaleString('en-US',{maximumFractionDigits:2});
+}
+function pCls(n) { return n==null?'flat':n>=0?'up':'down'; }
+
+// ═══ SPARKLINE ══════════════════════════
+function ds(arr,t){if(arr.length<=t)return arr;const s=arr.length/t;return Array.from({length:t},(_,i)=>arr[Math.round(i*s)])}
+
+function sparkSVG(prices, uid, H=50, W=200) {
+  const clean = Array.isArray(prices) ? prices.filter(p => Number.isFinite(p) && p >= 0) : [];
+  if(clean.length < 2) return '';
+  uid = String(uid).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const pts=ds(clean,60),P=2;
+  let mn=Infinity,mx=-Infinity;
+  for(const p of pts){if(p<mn)mn=p;if(p>mx)mx=p}
+  const rng=mx-mn||1,eH=H-P*2;
+  const co=pts.map((p,i)=>{
+    const x=(i/(pts.length-1))*W;
+    const y=P+eH-((p-mn)/rng)*eH;
+    return[+x.toFixed(1),+y.toFixed(1)];
+  });
+  const ln=co.map(c=>c.join(',')).join(' ');
+  const ar='M'+co[0].join(',')+' '+co.slice(1).map(c=>'L'+c.join(',')).join(' ')+` L${W},${H} L0,${H} Z`;
+  const up=pts[pts.length-1]>=pts[0];
+  const hex=up?'#22c55e':'#ef4444';
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    <defs><linearGradient id="g${uid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${hex}" stop-opacity=".2"/>
+      <stop offset="100%" stop-color="${hex}" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${ar}" fill="url(#g${uid})"/>
+    <polyline points="${ln}" fill="none" stroke="${hex}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function sparkModal(prices, uid) {
+  if(!prices?.length) return '<div class="modal-spark-empty">차트 데이터 없음</div>';
+  return `<div class="modal-spark">${sparkSVG(prices, uid, 100, 400)}</div>`;
+}
+
+// ═══ SORT & FILTER ══════════════════════
+function coinData(c) {
+  const d = c.gecko ? mkt[c.gecko] : null;
+  const has = d && d.current_price != null;
+  const h = holdings[c.id];
+  const price = has ? d.current_price : (h?.manualPrice || null);
+  const chg = has ? d.price_change_percentage_24h : null;
+  const mc = has ? d.market_cap : null;
+  const holdVal = (h?.qty && price) ? h.qty * price : 0;
+  return { coin:c, d, has, h, price, chg, mc, holdVal };
+}
+
+function getFiltered() {
+  let list = currentTab === 'all' ? [...coins] : coins.filter(c => c.cat === currentTab);
+  const query = document.getElementById('asset-search').value.trim().toLocaleLowerCase();
+  const heldOnly = document.getElementById('held-only').checked;
+  list = list.filter(c => (!query || [c.ticker,c.name,c.note,holdings[c.id]?.reason].filter(Boolean).join(' ').toLocaleLowerCase().includes(query)) && (!heldOnly || holdings[c.id]?.qty > 0));
+  const data = list.map(coinData);
+  data.sort((a, b) => {
+    let va, vb;
+    switch(sortCol) {
+      case 'name': va = a.coin.ticker; vb = b.coin.ticker; return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      case 'price': va = a.price||0; vb = b.price||0; break;
+      case 'chg': va = a.chg||0; vb = b.chg||0; break;
+      case 'mcap': va = a.mc||0; vb = b.mc||0; break;
+      case 'conviction': va = a.h?.conviction || 0; vb = b.h?.conviction || 0; break;
+      case 'hold': va = a.holdVal||0; vb = b.holdVal||0; break;
+      default: return 0;
+    }
+    return sortAsc ? va - vb : vb - va;
+  });
+  return data;
+}
+
+function setTab(cat) {
+  currentTab = cat;
+  const isPanel = cat === 'sector' || cat === 'compare' || cat === 'bubble';
+  if(typeof updateWorkspaceNavigation==='function')updateWorkspaceNavigation(cat==='farming'||cat==='options'?cat:'portfolio');
+  document.querySelectorAll('.tab').forEach(t => {
+    const active = t.getAttribute('onclick') === `setTab('${cat}')`;
+    t.classList.toggle('active', active); t.setAttribute('aria-pressed', String(active));
+  });
+  document.querySelector('.table-wrap').hidden = isPanel;
+  document.querySelector('.table-footer').hidden = isPanel;
+  document.getElementById('book-summary').hidden = isPanel;
+  const sp = document.getElementById('sector-panel');
+  const cp = document.getElementById('compare-panel');
+  const bp = document.getElementById('bubble-panel');
+  if (sp) sp.hidden = cat !== 'sector';
+  if (cp) cp.hidden = cat !== 'compare';
+  if (bp) bp.hidden = cat !== 'bubble';
+  if (cat === 'sector' && typeof renderSectorChart === 'function') renderSectorChart();
+  else if (cat === 'compare' && typeof renderCompareChart === 'function') renderCompareChart();
+  else if (cat === 'bubble' && typeof renderBubbleChart === 'function') renderBubbleChart();
+  else renderTable();
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = col === 'num' || col === 'name'; }
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.arrow');
+    if(arrow) arrow.textContent = '▼';
+  });
+  renderTable();
+}
+
+// ═══ RENDER ═════════════════════════════
+function resetFilters() {
+  document.getElementById('asset-search').value = '';
+  document.getElementById('held-only').checked = false;
+  setTab('all');
+}
+
+function catColor(cat) { return CAT[cat]?.color || 'var(--text-3)'; }
+
+
+function renderHero() {
+  let totalVal = 0, totalCost = 0, up = 0, dn = 0, tracked = 0;
+  for (const c of coins) {
+    const d = c.gecko ? mkt[c.gecko] : null;
+    const has = d && d.current_price != null;
+    const h = holdings[c.id];
+    const price = has ? d.current_price : (h?.manualPrice || 0);
+    if (has) {
+      tracked++;
+      if ((d.price_change_percentage_24h||0) >= 0) up++; else dn++;
+    }
+    if (h?.qty && price) {
+      totalVal += h.qty * price;
+      if (h.avgPrice) totalCost += h.qty * h.avgPrice;
+    }
+  }
+
+  const heroVal = document.getElementById('hero-val');
+  heroVal.textContent = totalVal > 0 ? fP(totalVal) : '$0.00';
+  document.getElementById('summary-all').textContent = coins.length;
+  document.getElementById('summary-held').textContent = coins.filter(c => holdings[c.id]?.qty > 0).length;
+  document.getElementById('summary-linked').textContent = tracked;
+
+  const heroChg = document.getElementById('hero-chg');
+  if (totalVal > 0 && totalCost > 0) {
+    const pnl = totalVal - totalCost;
+    const pnlPct = (totalVal/totalCost - 1) * 100;
+    const cls = pnl >= 0 ? 'up' : 'down';
+    heroChg.className = 'hero-change ' + cls;
+    heroChg.textContent = `${pnl>=0?'+':'−'}${fP(Math.abs(pnl))} (${fPct(pnlPct)})`;
+  } else {
+    heroChg.className = 'hero-change flat';
+    heroChg.textContent = totalVal > 0 ? '평균 매수가 입력 시 손익 표시' : '보유 수량을 입력해 시작하세요';
+  }
+
+  document.getElementById('hero-meta').innerHTML = `<b>${coins.length}</b> 종목 · <span style="color:var(--green)">${up}▲</span> <span style="color:var(--red)">${dn}▼</span>`;
+
+  document.getElementById('cnt-all').textContent = coins.length;
+  document.getElementById('cnt-main').textContent = coinsOf('main').length;
+  document.getElementById('cnt-fomo').textContent = coinsOf('fomo').length;
+  document.getElementById('cnt-etc').textContent = coinsOf('etc').length;
+  document.getElementById('cnt-stocks').textContent = coinsOf('stocks').length;
+  document.getElementById('cnt-farming').textContent = farming.length;
+  document.getElementById('cnt-options').textContent = options.length;
+}
+
+function renderAll() {
+  renderHero();
+  renderTable();
+}
+
+// ═══ DETAIL MODAL ═══════════════════════
+function openDetail(id) {
+  const coin = coins.find(c => c.id === id);
+  if(!coin) return;
+  const d = coin.gecko ? mkt[coin.gecko] : null;
+  const has = d && d.current_price != null;
+  const h = holdings[id] || {qty:0, avgPrice:0, manualPrice:0};
+  const col = catColor(coin.cat);
+  const logo = d?.image ? `<img src="${escapeHTML(d.image)}" alt="" onerror="this.remove()">` : '';
+  const price = has ? d.current_price : null;
+
+  const chartPrices=d?.collectedHistory?.map(p=>p.price)||d?.sparkline_in_7d?.price;
+  const spark = `<a id="detail-chart-link" class="detail-chart-link" target="_blank" rel="noopener noreferrer" aria-label="${escapeHTML(coin.ticker)} 외부 차트 열기" aria-disabled="true">
+    ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m'):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
+    <span id="detail-chart-status" class="detail-chart-status">${coin.cat==='stocks'?'TradingView':'DEX Screener'} 연결 확인 중…</span>
+  </a>`;
+
+  let dataGrid = '';
+  if(has) {
+    dataGrid = `<div class="mdata">
+      <div class="md"><div class="mk">가격</div><div class="mv">${fP(price)}</div></div>
+      <div class="md"><div class="mk">24시간</div><div class="mv"><span class="change ${pCls(d.price_change_percentage_24h)}">${fPct(d.price_change_percentage_24h)}</span></div></div>
+      <div class="md"><div class="mk">마켓캡</div><div class="mv">${fM(d.market_cap)}</div></div>
+      <div class="md"><div class="mk">거래량 24H</div><div class="mv">${fM(d.total_volume)}</div></div>
+    </div>`;
+  }
+
+  const showManual = !has;
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-head">
+      <div class="icon" style="background:${col}">${logo}<span class="fb">${escapeHTML(coin.ticker.slice(0,3))}</span></div>
+      <div class="minfo"><div class="ticker">${escapeHTML(coin.ticker)}</div><div class="name">${escapeHTML(coin.name)}${coin.note?' · '+escapeHTML(coin.note):''}</div></div>
+      <button class="btn-edit" onclick="openEdit('${id}')">수정</button>
+      <button aria-label="닫기" class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    ${spark}
+    ${dataGrid}
+    <div class="mdivider">내 포지션</div>
+    <div class="field"><label>보유 수량</label><input type="number" id="f-qty" step="any" min="0" value="${h.qty||''}" placeholder="0"></div>
+    <div class="field"><label>평균 매수가 ($)</label><input type="number" id="f-avg" step="any" min="0" value="${h.avgPrice||''}" placeholder="0"></div>
+    ${showManual?`<div class="field"><label>현재가 수동입력 ($)</label><input type="number" id="f-manual" step="any" min="0" value="${h.manualPrice||''}" placeholder="API 데이터 없음 — 수동 입력"></div>`:''}
+    <div id="calc-area"></div>
+    <div class="mdivider">매수 이유</div>
+    <div class="field"><label>왜 이걸 샀나</label><textarea id="f-reason" placeholder="투자 논리, 촉매, 메모 …">${escapeHTML(h.reason||'')}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="saveDetail('${id}',${has})">저장</button>
+      <button class="btn-del" onclick="delCoin('${id}')">삭제</button>
+    </div>
+  `;
+
+  showModal();
+  if(typeof connectDetailChart==='function')connectDetailChart(coin);
+
+  const qtyEl=document.getElementById('f-qty'), avgEl=document.getElementById('f-avg'), manEl=document.getElementById('f-manual');
+  const calc = () => {
+    const qty=parseFloat(qtyEl.value)||0, avg=parseFloat(avgEl.value)||0;
+    const cur=has?price:(parseFloat(manEl?.value)||0);
+    const area=document.getElementById('calc-area');
+    if(!qty||!cur){area.innerHTML='';return;}
+    const val=qty*cur;
+    let pnl='',pnlPct='';
+    if(avg>0){
+      const diff=(cur-avg)*qty, pct=(cur/avg-1)*100, cls=diff>=0?'pos':'neg';
+      pnl=`<div class="calc-row"><span class="ck">손익</span><span class="cv ${cls}">${diff>=0?'+':'−'}${fP(Math.abs(diff))}</span></div>`;
+      pnlPct=`<div class="calc-row"><span class="ck">수익률</span><span class="cv ${cls}">${fPct(pct)}</span></div>`;
+    }
+    area.innerHTML=`<div class="calc-row"><span class="ck">현재 가치</span><span class="cv" style="color:var(--main)">${fP(val)}</span></div>${pnl}${pnlPct}`;
+  };
+  qtyEl.addEventListener('input',calc); avgEl.addEventListener('input',calc);
+  if(manEl) manEl.addEventListener('input',calc);
+  calc();
+}
+
+function saveDetail(id, hasApi) {
+  const qty=parseFloat(document.getElementById('f-qty').value)||0;
+  const avg=parseFloat(document.getElementById('f-avg').value)||0;
+  const manEl=document.getElementById('f-manual');
+  const manual=manEl?parseFloat(manEl.value)||0:0;
+  const reason=(document.getElementById('f-reason')?.value||'').trim();
+  setHolding(id,qty,avg,manual,reason);
+  closeModal(); renderAll();
+}
+
+function delCoin(id) {
+  if(!confirm('이 코인을 삭제할까?')) return;
+  removeCoin(id); closeModal(); renderAll();
+}
+
+// ═══ EDIT FORM ══════════════════════════
+function openEdit(id) {
+  const coin=coins.find(c=>c.id===id);
+  if(!coin) return;
+  const col=catColor(coin.cat);
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-head">
+      <div class="icon" style="background:${col}"><span class="fb">${escapeHTML(coin.ticker.slice(0,3))}</span></div>
+      <div class="minfo"><div class="ticker" style="font-size:1rem">종목 수정</div><div class="name">${escapeHTML(coin.ticker)} 정보 편집</div></div>
+      <button aria-label="닫기" class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="field"><label>티커</label><input type="text" id="e-ticker" value="${escapeHTML(coin.ticker)}" maxlength="12" style="text-transform:uppercase"></div>
+    <div class="field"><label>이름</label><input type="text" id="e-name" value="${escapeHTML(coin.name)}"></div>
+    <div class="field"><label>태그</label><input type="text" id="e-note" value="${escapeHTML(coin.note||'')}" placeholder="Perp DEX, Meme, L2 …"></div>
+    <div class="field"><label>카테고리</label>
+      <div class="radio-group">
+        <label><input type="radio" name="e-cat" value="main" ${coin.cat==='main'?'checked':''}> 메인</label>
+        <label><input type="radio" name="e-cat" value="fomo" ${coin.cat==='fomo'?'checked':''}> 포모·밈</label>
+        <label><input type="radio" name="e-cat" value="etc" ${coin.cat==='etc'?'checked':''}> 기타</label>
+        <label><input type="radio" name="e-cat" value="stocks" ${coin.cat==='stocks'?'checked':''}> 주식</label>
+      </div>
+    </div>
+    <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="e-gecko" value="${coin.gecko?.startsWith('auto:')?'':coin.gecko||''}" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="submitEdit('${id}')">저장</button>
+      <button class="btn-del" onclick="openDetail('${id}')">취소</button>
+    </div>
+  `;
+  showModal();
+}
+
+function submitEdit(id) {
+  const ticker=(document.getElementById('e-ticker').value||'').trim().toUpperCase();
+  if(!ticker){alert('티커를 입력해');return;}
+  const name=document.getElementById('e-name').value.trim()||ticker;
+  const note=document.getElementById('e-note').value.trim()||'';
+  const cat=document.querySelector('input[name="e-cat"]:checked')?.value||'etc';
+  const gecko=parseGeckoInput(document.getElementById('e-gecko').value);
+  const oldCoin=coins.find(c=>c.id===id);
+  const geckoChanged=gecko!==oldCoin?.gecko;
+  updateCoin(id,{ticker,name,note,cat,gecko,providerId:geckoChanged?gecko:oldCoin?.providerId});
+  closeModal();
+  renderAll();
+  loadData();
+}
+
+// ═══ ADD FORM ═══════════════════════════
+function openAdd(cat) {
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-head">
+      <div class="minfo"><div class="ticker" style="font-size:1rem">코인 추가</div><div class="name">새 코인을 포트폴리오에 추가</div></div>
+      <button aria-label="닫기" class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="field"><label>티커 *</label><input type="text" id="a-ticker" placeholder="VAR" maxlength="12" style="text-transform:uppercase"></div>
+    <div class="field"><label>이름</label><input type="text" id="a-name" placeholder="Variational"></div>
+    <div class="field"><label>태그</label><input type="text" id="a-note" placeholder="Perp DEX, Meme, L2 …"></div>
+    <div class="field"><label>카테고리</label>
+      <div class="radio-group">
+        <label><input type="radio" name="a-cat" value="main" ${cat==='main'?'checked':''}> 메인</label>
+        <label><input type="radio" name="a-cat" value="fomo" ${cat==='fomo'?'checked':''}> 포모·밈</label>
+        <label><input type="radio" name="a-cat" value="etc" ${cat==='etc'?'checked':''}> 기타</label>
+        <label><input type="radio" name="a-cat" value="stocks" ${cat==='stocks'?'checked':''}> 주식</label>
+      </div>
+    </div>
+    <div class="field"><label>CoinGecko ID / 링크</label><input type="text" id="a-gecko" placeholder="ID 또는 coingecko.com 링크 붙여넣기"></div>
+    <div class="modal-actions"><button class="btn-save" onclick="submitAdd()">추가</button></div>
+  `;
+  showModal();
+  document.getElementById('a-ticker').focus();
+}
+
+function submitAdd() {
+  const ticker=(document.getElementById('a-ticker').value||'').trim().toUpperCase();
+  if(!ticker){alert('티커를 입력해');return;}
+  const name=document.getElementById('a-name').value.trim()||ticker;
+  const note=document.getElementById('a-note').value.trim()||'';
+  const cat=document.querySelector('input[name="a-cat"]:checked')?.value||'etc';
+  const gecko=parseGeckoInput(document.getElementById('a-gecko').value);
+  const id=genId(ticker);
+  addCoin({id,ticker,name,note,gecko,cat});
+  closeModal(); renderAll();
+  loadData();
+}
+
+// ═══ MODAL UTIL ═════════════════════════
+let modalTrigger = null;
+function showModal() {
+  const overlay = document.getElementById('overlay');
+  if (!overlay.classList.contains('open')) modalTrigger = document.activeElement;
+  overlay.classList.add('open');
+  document.querySelector('main').inert = true;
+  document.body.style.overflow = 'hidden';
+  document.querySelectorAll('.field').forEach(field => {
+    const label = field.querySelector('label'), input = field.querySelector('input:not([type="radio"]),textarea,select');
+    if (label && input?.id) label.htmlFor = input.id;
+  });
+  document.getElementById('modal-body').focus();
+}
+function closeModal() {
+  if (!document.getElementById('overlay').classList.contains('open')) return;
+  document.getElementById('overlay').classList.remove('open');
+  document.querySelector('main').inert = false;
+  document.body.style.overflow = '';
+  if (modalTrigger?.isConnected) modalTrigger.focus();
+}
+document.getElementById('modal-body').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const fields = [...e.currentTarget.querySelectorAll('button,input,textarea,select,[tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+  const first = fields[0], last = fields[fields.length - 1];
+  if (e.shiftKey && (document.activeElement === first || document.activeElement === e.currentTarget)) { e.preventDefault(); last?.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+});
+document.querySelectorAll('th[onclick]').forEach(th => {
+  th.tabIndex = 0;
+  th.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') {e.preventDefault(); th.click();} });
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+// ═══ SKELETON ═══════════════════════════
+function renderSkel() {
+  const tbody = document.getElementById('tbody');
+  let h = '';
+  for (let i = 0; i < Math.min(coins.length, 15); i++) {
+    h += `<tr style="animation-delay:${i*20}ms">
+      <td class="td-num"><div class="skel" style="width:16px;height:12px;margin:0 auto"></div></td>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="skel" style="width:28px;height:28px;border-radius:50%;flex-shrink:0"></div><div><div class="skel" style="width:52px;height:12px;margin-bottom:3px"></div><div class="skel" style="width:80px;height:9px"></div></div></div></td>
+      <td class="td-spark"><div class="skel" style="width:80px;height:24px;border-radius:4px"></div></td>
+      <td><div class="skel" style="width:70px;height:13px;margin-left:auto"></div></td>
+      <td><div class="skel" style="width:48px;height:11px;margin-left:auto"></div></td>
+      <td class="td-mcap"><div class="skel" style="width:58px;height:11px;margin-left:auto"></div></td>
+      <td><div class="skel" style="width:54px;height:11px;margin-left:auto"></div></td>
+    </tr>`;
+  }
+  tbody.innerHTML = h;
+}
+
+// ═══ STATUS & CLOCK ═════════════════════
+function setStatus(s, msg) {
+  document.getElementById('status').innerHTML = `<span class="dot ${s}"></span> ${msg}`;
+}
+function updateClock() {
+  const n=new Date(), p=x=>String(x).padStart(2,'0');
+  document.getElementById('clock').textContent = `${n.getFullYear()}.${p(n.getMonth()+1)}.${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+
+// ═══ INIT ═══════════════════════════════
+const MARKET_CACHE_KEY = 'coin-portfolio-market-cache-v1';
+let marketUpdatedAt = null;
+let marketRequest = false;
+function restoreMarketCache() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(MARKET_CACHE_KEY));
+    if (cached?.markets && typeof cached.markets === 'object' && !Array.isArray(cached.markets) && Number.isFinite(cached.updatedAt)) {
+      mkt = cached.markets;
+      marketUpdatedAt = cached.updatedAt;
+    }
+  } catch {}
+}
+async function loadData() {
+  if (marketRequest) return;
+  marketRequest = true;
+  setStatus('load','시세 · 로고 · 7일 차트 갱신 중…');
+  try {
+    // Known IDs load first; a discovery request must not block the existing market feed.
+    mkt = await fetchMarkets();
+    marketUpdatedAt = Date.now();
+    try { localStorage.setItem(MARKET_CACHE_KEY, JSON.stringify({markets:mkt,updatedAt:marketUpdatedAt})); } catch {}
+    renderAll();
+    const found = coins.filter(c => c.gecko && mkt[c.gecko]).length;
+    setStatus('ok', `${found}/${coins.length} 연결 · ${new Date(marketUpdatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})} 갱신`);
+  } catch(e) {
+    console.error(e);
+    // Preserve the last successful prices, logos and charts, with an explicit stale label.
+    renderAll();
+    const reason = String(e.message)==='429' ? '요청 한도 초과' : 'API 연결 실패';
+    const cached = marketUpdatedAt ? ` · ${new Date(marketUpdatedAt).toLocaleString()} 저장 데이터 표시` : ' · 수신된 차트 데이터 없음';
+    setStatus('err',reason+cached);
+  } finally { marketRequest = false; }
+}
+
+async function refresh() { await loadData(); updateClock(); }
+
+</script>
+<script src="position-tools.js"></script>
+<script src="auto-sync.js"></script>
+<script src="journal-view.js"></script>
+<script src="dex-imports.js"></script>
+<script src="farming-pairs.js"></script>
+<script src="sector-chart.js"></script>
+<script src="compare-chart.js"></script>
+<script src="bubble-chart.js"></script>
+<script>
+load();
+restoreMarketCache();
+restoreAutomaticCache();
+importDexLinks();
+initFarmingPairs();
+initScenario();
+initReflections();
+setTab('all');
+renderHero();
+updateClock();
+setInterval(updateClock, 30000);
+startAutomatic();
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert');
+const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const nodes=new Map(),storage=new Map();
+const el=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:false,children:[],handlers:{},innerHTML:'',textContent:'',addEventListener(type,fn){this.handlers[type]=fn},matches(){return false}});return nodes.get(id)};
+const ctx=vm.createContext({console,URL,Date,AbortSignal,location:{protocol:'file:',origin:'null'},window:{addEventListener(){}},setTimeout,setInterval:()=>1,document:{activeElement:null,hidden:false,getElementById:el,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
+for(const [,src,code]of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g)){if(code.includes('startAutomatic();'))continue;vm.runInContext(src?fs.readFileSync(path.join(root,src),'utf8'):code,ctx);}
+const run=s=>vm.runInContext(s,ctx);
+run('load();initReflections()');
+assert(run('reflections.text').includes('메타를 빠르게 읽고 편승해야함'));
+assert(run('reflections.text').includes('가는놈이 더간다'));
+run("saveReflections('My private reflection');load();initReflections()");
+assert.equal(run('reflections.text'),'My private reflection');
+run("saveReflections('');load();initReflections()");
+assert.equal(run('reflections.text'),'');
+assert.equal(run("reflectionMarkup('## Heading\\n- **Bold** <script>bad</script>')").includes('<script>'),false);
+run("saveReflections('My private reflection')");
+
+run("load();saveScenario('My scenario, invalidation below support');holdings.uni={qty:2,avgPrice:5,reason:'Never overwrite',conviction:5};applyMarketResponse({data:{uni:{current_price:8,canonicalId:'uniswap',canonicalName:'Uniswap',canonicalSymbol:'UNI',source:'CoinGecko',updatedAt:Date.now(),sparkline_in_7d:{price:[7,8]},reason:'malicious',conviction:1}}})");
+assert.equal(run('holdings.uni.reason'),'Never overwrite');assert.equal(run('holdings.uni.conviction'),5);assert.equal(run('scenario.text'),'My scenario, invalidation below support');assert.equal(el('hero-val').textContent,'$16.00');
+run("options=[{id:'o',contracts:2,multiplier:1,side:'long',entry:100,mark:110,fees:2}];optionQuotes.o={mark:200,contractSize:1};");assert.equal(run('optionPnL(options[0])'),198);
+run("farming=[{id:'hl:a:BTC',source:'hyperliquid',reason:'hedge',conviction:4}];mergeAccountPositions({positions:[{id:'hl:a:BTC',source:'hyperliquid',apiPnL:20,ticker:'BTC',quantity:1}],stale:false})");assert.equal(run('farming[0].reason'),'hedge');assert.equal(run('farming[0].conviction'),4);assert.equal(run('farmingPnL(farming[0])'),20);
+run("mergeAccountPositions({positions:[],stale:true})");assert.equal(run('farming[0].closed'),false);
+run("mergeAccountPositions({positions:[],stale:false})");assert.equal(run('farming[0].closed'),true);assert.equal(run('farming[0].reason'),'hedge');
+assert(run("chartFrameURL({type:'tradingview',symbol:'BINANCE:UNIUSDT'})").startsWith('https://www.tradingview-widget.com/'));assert.equal(run("chartFrameURL({type:'dex',url:'https://evil.test/chart'})"),null);assert.equal(run("chartFrameURL({type:'tradingview',symbol:'<script>'})"),null);
+const urls=[];ctx.fetch=async(url,opts)=>{urls.push([url,JSON.parse(opts.body)]);let data;
+if(url.endsWith('/markets'))data={data:{uni:{current_price:9,canonicalId:'uniswap',source:'CoinGecko',updatedAt:Date.now(),sparkline_in_7d:{price:[8,9]}}}};
+else if(url.endsWith('/news'))data={articles:[{title:'A headline',url:'https://example.com',source:'Publisher',publishedAt:'2026-09-18T10:00:00Z'}],updatedAt:Date.now()};
+else if(url.endsWith('/perps'))data={data:[],updatedAt:Date.now()};else data={data:{}};
+return {ok:true,json:async()=>data};};
+(async()=>{await run('syncAutomatic(true)');assert(run('newsByAsset["spot:uni"].articles.length')===1);assert(el('auto-status').textContent.includes('자동 갱신 켜짐'));assert(!JSON.stringify(urls).includes('Never overwrite'));assert(!JSON.stringify(urls).includes('avgPrice'));assert(!JSON.stringify(urls).includes('My scenario'));assert(!JSON.stringify(urls).includes('My private reflection'));assert.equal(run('reflections.text'),'My private reflection');assert.equal(run('holdings.uni.conviction'),5);assert.equal(run('coinData(coins.find(c=>c.id==="uni")).price'),9);
+ctx.fetch=async()=>{throw new Error('offline')};await run('syncAutomatic(true)');assert.equal(run('marketByCoin.uni.current_price'),9);assert.equal(run('marketByCoin.uni.stale'),true);assert.equal(run('holdings.uni.reason'),'Never overwrite');assert.equal(run('autoBusy'),false);
+console.log('PASS: automatic orchestration, quote/valuation updates, news fetching, account merge/archive, journal isolation, safe outbound fields, offline retention.');})().catch(e=>{console.error(e);process.exitCode=1});
+// One-time user import preserves existing journals and distinguishes identical symbols across chains.
+run("holdings.prlg={qty:12,reason:'Prologue thesis',conviction:4};marketByCoin.prlg={current_price:999,canonicalId:'wrong'};importDexLinks()");
+assert.equal(run('coins.filter(c=>c.dex).length'),12);
+assert.equal(run('holdings.prlg.reason'),'Prologue thesis');assert.equal(run('holdings.prlg.qty'),12);assert.equal(run('holdings.prlg.conviction'),4);
+assert.equal(run('marketByCoin.prlg'),undefined);
+assert.equal(run('coins.find(c=>c.id==="prlg").ticker'),'PROLOGUE');
+assert.equal(run('coins.find(c=>c.id==="purr-hev").dex.chain'),'hyperevm');
+assert.equal(run('coins.find(c=>c.id==="dex-solana-purr").dex.chain'),'solana');
+assert.equal(run('coins.find(c=>c.id==="purr-rh").dex'),undefined);
+run('removeCoin("dex-robinhood-frong");load();importDexLinks()');
+assert.equal(run('coins.filter(c=>c.dex).length'),11);
