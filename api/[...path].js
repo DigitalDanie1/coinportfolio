@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
   if (!restored) { await service.restore(); restored = true; }
 
-  const route = '/' + (Array.isArray(req.query.path) ? req.query.path.join('/') : '');
+  const route = (req.url || '').replace(/^\/api/, '').replace(/\?.*$/, '') || '/';
 
   try {
     if (req.method === 'GET' && route === '/health') {
