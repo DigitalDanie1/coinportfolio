@@ -447,3 +447,24 @@ tbody tr:hover td{background:var(--row-hover)}
 .goal-track i{display:block;height:100%;border-radius:999px;background:var(--main);transition:width .5s ease}
 .goal-foot{display:flex;justify-content:space-between;gap:12px;margin-top:7px;font-size:.75rem;font-weight:550;color:var(--text-3);font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:reduce){.goal-track i{transition:none}}
+
+/* ── Hero re-balance: my money on the left, the market on the right ── */
+.hero{align-items:start}
+.overview{display:flex;flex-direction:column;gap:0}
+.market-pulse{display:block;margin:0}
+.pulse-row{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:10px;padding:13px 0;border-bottom:1px solid var(--border-h)}
+.pulse-row .pulse-label{font-size:.82rem;font-weight:550;color:var(--text-2);white-space:nowrap}
+.pulse-row .pulse-value{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:1.22rem;font-weight:680;letter-spacing:-.03em;text-align:right;margin:0}
+.pulse-row .pulse-sub{font-size:.76rem;font-weight:600;margin:0;white-space:nowrap;text-align:right}
+.pulse-row .pulse-gauge{grid-column:1/-1;margin-top:2px}
+.overview-counts{display:flex;gap:18px;flex-wrap:wrap;padding:14px 0 0;font-size:.79rem;color:var(--text-3);font-weight:500}
+.overview-counts b{font-size:.95rem;font-weight:680;color:var(--text-1);margin-right:4px;font-variant-numeric:tabular-nums}
+.household-rank{margin-top:auto;padding-top:14px}
+.rank-line{font-size:.79rem;font-weight:550;color:var(--text-3);cursor:help}
+.goal-bar{max-width:none}
+@media(max-width:768px){
+  .overview{padding:18px 20px}
+  .pulse-row{padding:11px 0}
+  .pulse-row .pulse-value{font-size:1.1rem}
+  .household-rank{margin-top:0}
+}

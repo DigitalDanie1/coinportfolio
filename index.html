@@ -227,17 +227,15 @@ tr{animation:fadeIn .25s ease both}
 
     </div>
     <div class="goal-bar" id="goal-bar" aria-live="polite"></div>
-    <div class="household-rank" id="household-rank" aria-live="polite"></div>
-    <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
   </div>
-    <aside class="overview" aria-label="종목 현황">
-      <div class="overview-title">종목 현황</div>
-      <div class="overview-grid">
-        <div><span class="overview-value mono" id="summary-all">0</span><span class="overview-label">전체 종목</span></div>
-        <div><span class="overview-value mono" id="summary-held">0</span><span class="overview-label">보유 종목</span></div>
-        <div><span class="overview-value mono" id="summary-linked">0</span><span class="overview-label">시세 연결</span></div>
+    <aside class="overview" aria-label="시장 현황">
+      <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
+      <div class="overview-counts">
+        <span><b class="mono" id="summary-all">0</b> 전체</span>
+        <span><b class="mono" id="summary-held">0</b> 보유</span>
+        <span><b class="mono" id="summary-linked">0</b> 연결</span>
       </div>
-      <p class="overview-note">종목을 선택해 보유 수량과 투자 메모를 관리하세요.</p>
+      <div class="household-rank" id="household-rank" aria-live="polite"></div>
     </aside>
   </section>
   <section id="workspace-scenario" hidden class="scenario-panel" aria-labelledby="scenario-heading">
@@ -490,26 +488,25 @@ function renderMarketPulse() {
   if (!box) return;
   const p = marketPulse;
   if (!p || (!p.fearGreed && !p.btc)) { box.innerHTML = ''; return; }
-  const cards = [];
+  const rows = [];
   if (p.btc) {
     const chg = p.btc.change24h;
-    cards.push(`<div class="pulse-card">
+    rows.push(`<div class="pulse-row">
       <span class="pulse-label">비트코인</span>
       <b class="pulse-value">$${Math.round(p.btc.price).toLocaleString('en-US')}</b>
-      <span class="pulse-sub ${pCls(chg)}">${fPct(chg)} · 24H</span>
+      <span class="pulse-sub ${pCls(chg)}">${fPct(chg)}</span>
     </div>`);
   }
   if (p.fearGreed) {
     const v = p.fearGreed.value, prev = p.fearGreed.previous;
-    const delta = prev == null ? '' : ` · 어제 ${prev}`;
-    cards.push(`<div class="pulse-card">
-      <span class="pulse-label">공포·탐욕 지수</span>
+    rows.push(`<div class="pulse-row">
+      <span class="pulse-label">공포·탐욕</span>
       <b class="pulse-value ${fngTone(v)}">${v}</b>
-      <span class="pulse-sub">${escapeHTML(fngLabel(v))}${delta}</span>
+      <span class="pulse-sub">${escapeHTML(fngLabel(v))}${prev == null ? '' : ` · 어제 ${prev}`}</span>
       <span class="pulse-gauge" role="img" aria-label="공포 탐욕 지수 ${v} / 100"><i style="left:${Math.max(0,Math.min(100,v))}%"></i></span>
     </div>`);
   }
-  box.innerHTML = cards.join('');
+  box.innerHTML = rows.join('');
 }
 async function syncMarketPulse() {
   try {
@@ -580,8 +577,7 @@ function renderHouseholdRank(totalUsd) {
   const label = rank.beyond === 'above' ? '상위 5% 이내'
     : rank.beyond === 'below' ? '하위 5% 수준'
     : `상위 ${formatTop(rank.top)}%`;
-  box.innerHTML = `<span class="rank-line">약 <b>${escapeHTML(amount)}</b> · 가구 순자산이라면 <b class="rank-top">${escapeHTML(label)}</b></span>
-    <span class="rank-note">${escapeHTML(KR_NETWORTH_SOURCE)} 기준 · 이 책의 코인 평가액만 반영</span>`;
+  box.innerHTML = `<span class="rank-line" title="${escapeHTML(KR_NETWORTH_SOURCE)} 기준 · 이 책의 코인 평가액만 반영">${escapeHTML(amount)} · 가구 순자산이라면 <b class="rank-top">${escapeHTML(label)}</b></span>`;
 }
 
 // ═══ THEME ══════════════════════════════
