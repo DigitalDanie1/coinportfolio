@@ -226,6 +226,7 @@ tr{animation:fadeIn .25s ease both}
       <span class="hero-meta" id="hero-meta"></span>
 
     </div>
+    <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
   </div>
     <aside class="overview" aria-label="종목 현황">
       <div class="overview-title">종목 현황</div>
@@ -440,6 +441,81 @@ function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
+// ═══ NUMBER INPUTS ══════════════════════
+// type="number" rejects grouped text, so these fields are text and format as they are typed.
+function parseNumInput(value) {
+  const n = parseFloat(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+function groupNumber(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  if (!Number.isFinite(n) || n === 0) return '';
+  const [int, frac] = String(n).split('.');
+  return Number(int).toLocaleString('en-US') + (frac ? '.' + frac : '');
+}
+function groupWhileTyping(raw) {
+  const cleaned = String(raw).replace(/[^\d.]/g, '');
+  const dot = cleaned.indexOf('.');
+  const int = dot === -1 ? cleaned : cleaned.slice(0, dot);
+  const frac = dot === -1 ? '' : cleaned.slice(dot + 1).replace(/\./g, '');
+  const grouped = int ? Number(int).toLocaleString('en-US') : '';
+  return dot === -1 ? grouped : grouped + '.' + frac;
+}
+function attachNumberGrouping(el) {
+  el.addEventListener('input', () => {
+    // Keep the caret where the digits around it stayed, not where the commas moved it.
+    const before = el.value, caret = el.selectionStart;
+    const digitsBefore = before.slice(0, caret).replace(/[^\d.]/g, '').length;
+    el.value = groupWhileTyping(before);
+    let seen = 0, pos = el.value.length;
+    for (let i = 0; i < el.value.length; i++) {
+      if (/[\d.]/.test(el.value[i])) seen++;
+      if (seen === digitsBefore) { pos = i + 1; break; }
+    }
+    if (digitsBefore === 0) pos = 0;
+    el.setSelectionRange(pos, pos);
+  });
+}
+
+// ═══ MARKET PULSE ═══════════════════════
+let marketPulse = null;
+const FNG_BANDS = [[25,'극심한 공포'],[46,'공포'],[55,'중립'],[76,'탐욕'],[101,'극심한 탐욕']];
+function fngLabel(v) { return (FNG_BANDS.find(([max]) => v < max) || FNG_BANDS[4])[1]; }
+function fngTone(v) { return v < 46 ? 'down' : v > 55 ? 'up' : 'flat'; }
+function renderMarketPulse() {
+  const box = document.getElementById('market-pulse');
+  if (!box) return;
+  const p = marketPulse;
+  if (!p || (!p.fearGreed && !p.btc)) { box.innerHTML = ''; return; }
+  const cards = [];
+  if (p.btc) {
+    const chg = p.btc.change24h;
+    cards.push(`<div class="pulse-card">
+      <span class="pulse-label">비트코인</span>
+      <b class="pulse-value">$${Math.round(p.btc.price).toLocaleString('en-US')}</b>
+      <span class="pulse-sub ${pCls(chg)}">${fPct(chg)} · 24H</span>
+    </div>`);
+  }
+  if (p.fearGreed) {
+    const v = p.fearGreed.value, prev = p.fearGreed.previous;
+    const delta = prev == null ? '' : ` · 어제 ${prev}`;
+    cards.push(`<div class="pulse-card">
+      <span class="pulse-label">공포·탐욕 지수</span>
+      <b class="pulse-value ${fngTone(v)}">${v}</b>
+      <span class="pulse-sub">${escapeHTML(fngLabel(v))}${delta}</span>
+      <span class="pulse-gauge" role="img" aria-label="공포 탐욕 지수 ${v} / 100"><i style="left:${Math.max(0,Math.min(100,v))}%"></i></span>
+    </div>`);
+  }
+  box.innerHTML = cards.join('');
+}
+async function syncMarketPulse() {
+  try {
+    marketPulse = await dataAPI('/api/pulse', {});
+    renderMarketPulse();
+  } catch {}
+}
+
 // ═══ THEME ══════════════════════════════
 const THEME_KEY = 'coin-portfolio-theme';
 function currentTheme() { return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
@@ -633,13 +709,16 @@ function pCls(n) { return n==null?'flat':n>=0?'up':'down'; }
 // ═══ SPARKLINE ══════════════════════════
 function ds(arr,t){if(arr.length<=t)return arr;const s=arr.length/t;return Array.from({length:t},(_,i)=>arr[Math.round(i*s)])}
 
-function sparkSVG(prices, uid, H=50, W=200) {
+function sparkSVG(prices, uid, H=50, W=200, marks=[]) {
   const clean = Array.isArray(prices) ? prices.filter(p => Number.isFinite(p) && p >= 0) : [];
   if(clean.length < 2) return '';
   uid = String(uid).replace(/[^a-zA-Z0-9_-]/g, '_');
   const pts=ds(clean,60),P=2;
   let mn=Infinity,mx=-Infinity;
   for(const p of pts){if(p<mn)mn=p;if(p>mx)mx=p}
+  // A marker outside the plotted range would sit off-canvas, so the scale opens up to include it.
+  const shown=marks.filter(m=>Number.isFinite(m.price)&&m.price>0);
+  for(const m of shown){if(m.price<mn)mn=m.price;if(m.price>mx)mx=m.price}
   const rng=mx-mn||1,eH=H-P*2;
   const co=pts.map((p,i)=>{
     const x=(i/(pts.length-1))*W;
@@ -657,12 +736,26 @@ function sparkSVG(prices, uid, H=50, W=200) {
     </linearGradient></defs>
     <path d="${ar}" fill="url(#g${uid})"/>
     <polyline points="${ln}" fill="none" stroke="${hex}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${shown.map(m=>{
+      const y=(P+eH-((m.price-mn)/rng)*eH).toFixed(1);
+      return `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${m.color}" stroke-width="1" stroke-dasharray="4,3" vector-effect="non-scaling-stroke"/>`;
+    }).join('')}
   </svg>`;
 }
 
-function sparkModal(prices, uid) {
+function positionMarks(id) {
+  const h = holdings[id];
+  if (!h) return [];
+  const marks = [];
+  if (h.qty > 0 && h.avgPrice > 0) marks.push({ price: h.avgPrice, label: '내 평단', color: 'var(--text-1)' });
+  if (h.targetPrice > 0) marks.push({ price: h.targetPrice, label: '목표 매도', color: 'var(--green)' });
+  return marks;
+}
+function sparkModal(prices, uid, marks=[]) {
   if(!prices?.length) return '<div class="modal-spark-empty">차트 데이터 없음</div>';
-  return `<div class="modal-spark">${sparkSVG(prices, uid, 100, 400)}</div>`;
+  const legend = marks.length ? `<div class="mark-legend">${marks.map(m =>
+    `<span class="mark-item"><i style="background:${m.color}"></i>${escapeHTML(m.label)} ${fP(m.price)}</span>`).join('')}</div>` : '';
+  return `<div class="modal-spark">${sparkSVG(prices, uid, 100, 400, marks)}</div>${legend}`;
 }
 
 // ═══ SORT & FILTER ══════════════════════
@@ -818,7 +911,7 @@ function openDetail(id) {
 
   const chartPrices=priceSeries(d);
   const spark = `<a id="detail-chart-link" class="detail-chart-link" target="_blank" rel="noopener noreferrer" aria-label="${escapeHTML(coin.ticker)} 외부 차트 열기" aria-disabled="true">
-    ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m'):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
+    ${chartPrices?.length>1?sparkModal(chartPrices,id+'-m',positionMarks(id)):'<div class="modal-spark-empty">외부 차트에서 가격 추이 보기</div>'}
     <span id="detail-chart-status" class="detail-chart-status">차트 연결 확인 중…</span>
   </a>`;
 
@@ -844,9 +937,10 @@ function openDetail(id) {
     ${spark}
     ${dataGrid}
     <div class="mdivider">내 포지션</div>
-    <div class="field"><label>보유 수량</label><input type="number" id="f-qty" step="any" min="0" value="${h.qty||''}" placeholder="0"></div>
-    <div class="field"><label>평균 매수가 ($)</label><input type="number" id="f-avg" step="any" min="0" value="${h.avgPrice||''}" placeholder="0"></div>
-    ${showManual?`<div class="field"><label>현재가 수동입력 ($)</label><input type="number" id="f-manual" step="any" min="0" value="${h.manualPrice||''}" placeholder="API 데이터 없음 — 수동 입력"></div>`:''}
+    <div class="field"><label>보유 수량</label><input type="text" inputmode="decimal" id="f-qty" class="num-input" value="${groupNumber(h.qty)}" placeholder="0"></div>
+    <div class="field"><label>평균 매수가 ($)</label><input type="text" inputmode="decimal" id="f-avg" class="num-input" value="${groupNumber(h.avgPrice)}" placeholder="0"></div>
+    <div class="field"><label>목표 매도가 ($)</label><input type="text" inputmode="decimal" id="f-target" class="num-input" value="${groupNumber(h.targetPrice)}" placeholder="선택 · 차트에 선으로 표시"></div>
+    ${showManual?`<div class="field"><label>현재가 수동입력 ($)</label><input type="text" inputmode="decimal" id="f-manual" class="num-input" value="${groupNumber(h.manualPrice)}" placeholder="API 데이터 없음 — 수동 입력"></div>`:''}
     <div id="calc-area"></div>
     <div class="mdivider">매수 이유</div>
     <div class="field"><label>왜 이걸 샀나</label><textarea id="f-reason" placeholder="투자 논리, 촉매, 메모 …">${escapeHTML(h.reason||'')}</textarea></div>
@@ -861,8 +955,8 @@ function openDetail(id) {
 
   const qtyEl=document.getElementById('f-qty'), avgEl=document.getElementById('f-avg'), manEl=document.getElementById('f-manual');
   const calc = () => {
-    const qty=parseFloat(qtyEl.value)||0, avg=parseFloat(avgEl.value)||0;
-    const cur=has?price:(parseFloat(manEl?.value)||0);
+    const qty=parseNumInput(qtyEl.value), avg=parseNumInput(avgEl.value);
+    const cur=has?price:parseNumInput(manEl?.value);
     const area=document.getElementById('calc-area');
     if(!qty||!cur){area.innerHTML='';return;}
     const val=qty*cur;
@@ -874,18 +968,20 @@ function openDetail(id) {
     }
     area.innerHTML=`<div class="calc-row"><span class="ck">현재 가치</span><span class="cv" style="color:var(--main)">${fP(val)}</span></div>${pnl}${pnlPct}`;
   };
-  qtyEl.addEventListener('input',calc); avgEl.addEventListener('input',calc);
-  if(manEl) manEl.addEventListener('input',calc);
+  const tgtEl=document.getElementById('f-target');
+  for(const el of [qtyEl,avgEl,manEl,tgtEl]) if(el){ attachNumberGrouping(el); el.addEventListener('input',calc); }
   calc();
 }
 
 function saveDetail(id, hasApi) {
-  const qty=parseFloat(document.getElementById('f-qty').value)||0;
-  const avg=parseFloat(document.getElementById('f-avg').value)||0;
+  const qty=parseNumInput(document.getElementById('f-qty').value);
+  const avg=parseNumInput(document.getElementById('f-avg').value);
   const manEl=document.getElementById('f-manual');
-  const manual=manEl?parseFloat(manEl.value)||0:0;
+  const manual=parseNumInput(manEl?.value);
+  const target=parseNumInput(document.getElementById('f-target')?.value);
   const reason=(document.getElementById('f-reason')?.value||'').trim();
   setHolding(id,qty,avg,manual,reason);
+  holdings[id].targetPrice=target; save();
   closeModal(); renderAll();
 }
 

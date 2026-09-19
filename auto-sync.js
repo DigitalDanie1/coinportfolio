@@ -166,6 +166,7 @@ async function syncAutomatic(force=false){
     const failed=results.filter(r=>r.status==='rejected').length;
     if(failed===tasks.length)throw new Error('데이터 서비스 연결 실패');
     await syncNews(force);
+    if(typeof syncMarketPulse==='function')syncMarketPulse();
     if(await fillDexHistories())renderAll();
     autoFailures=0;nextAutoSync=Date.now()+60000;
     const live=coins.filter(c=>marketByCoin[c.id]?.current_price!=null&&!marketByCoin[c.id]?.stale).length;

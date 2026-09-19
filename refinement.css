@@ -399,3 +399,20 @@ tbody tr:last-child td{border-bottom:0}
 .signal.down{color:var(--red);background:color-mix(in srgb,var(--red) var(--signal-tint),var(--bg))}
 .signal.hot{color:var(--text-1);background:var(--surface-3)}
 @media(max-width:640px){.signal{font-size:.68rem;padding:3px 7px}}
+
+/* Market-wide context next to the portfolio total. */
+.market-pulse{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.market-pulse:empty{display:none}
+.pulse-card{position:relative;flex:1 1 150px;min-width:0;background:var(--surface);border:1px solid var(--border-h);border-radius:var(--r);padding:13px 15px 15px}
+.pulse-label{display:block;font-size:.74rem;font-weight:550;color:var(--text-2)}
+.pulse-value{display:block;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:1.32rem;font-weight:680;letter-spacing:-.03em;margin-top:5px;color:var(--text-1)}
+.pulse-value.up{color:var(--green)}.pulse-value.down{color:var(--red)}
+.pulse-sub{display:block;font-size:.74rem;font-weight:550;color:var(--text-3);margin-top:4px}
+.pulse-sub.up{color:var(--green)}.pulse-sub.down{color:var(--red)}
+.pulse-gauge{display:block;position:relative;height:4px;border-radius:999px;margin-top:10px;background:linear-gradient(90deg,var(--red),var(--text-3) 50%,var(--green))}
+.pulse-gauge i{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;background:var(--text-1);border:2px solid var(--bg);transform:translate(-50%,-50%)}
+@media(max-width:640px){.market-pulse{gap:8px}.pulse-card{padding:11px 13px 13px}.pulse-value{font-size:1.18rem}}
+.mark-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:9px}
+.mark-item{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:550;color:var(--text-2);font-variant-numeric:tabular-nums}
+.mark-item i{width:11px;height:2px;border-radius:1px;flex-shrink:0}
+.num-input{font-variant-numeric:tabular-nums}

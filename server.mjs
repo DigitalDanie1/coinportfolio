@@ -38,7 +38,8 @@ const server=http.createServer(async(req,res)=>{
         if(!Array.isArray(input.positions)||input.positions.length>100)throw new Error('Invalid positions');
         // Only contract identifiers are forwarded; balances, entry prices, thesis and conviction stay local.
         result=await service.optionQuotes(input.positions.map(p=>({id:String(p.id).slice(0,150),ticker:String(p.ticker).slice(0,30),venue:String(p.venue||'').slice(0,40),expiry:String(p.expiry||'').slice(0,10),strike:Number(p.strike),kind:p.kind==='put'?'put':'call',instrument:String(p.instrument||'').slice(0,100)})));
-      }else if(url.pathname==='/api/dexsearch')result=await service.dexSearch(input.query);
+      }else if(url.pathname==='/api/pulse')result=await service.pulse();
+      else if(url.pathname==='/api/dexsearch')result=await service.dexSearch(input.query);
       else if(url.pathname==='/api/perps')result=await service.perpMarkets();
       else if(url.pathname==='/api/account/hyperliquid')result=await service.hyperliquidAccount(String(input.address||''));
       else {json(404,{error:'Not found'});return;}
