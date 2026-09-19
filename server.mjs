@@ -7,7 +7,9 @@ const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORTFOLIO_PORT||8787);
 const service=new DataService({cacheDir:path.join(ROOT,'.data')});
 await service.restore();
-const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js']]);
+const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js'],
+  ...['risex.png','truenorth.ico','arcus.png','entropy.png','hello.svg','mnx.ico','pacifica.png','qfex.svg'].map(f=>['/logos/'+f,'logos/'+f])]);
+const MIME=new Map([['.js','text/javascript'],['.css','text/css'],['.png','image/png'],['.svg','image/svg+xml'],['.ico','image/x-icon']]);
 const origins=new Set(['null',`http://127.0.0.1:${PORT}`,`http://localhost:${PORT}`]);
 async function body(req) {let text='';for await(const part of req){text+=part;if(text.length>150000){const error=new Error('Request too large');error.status=413;throw error;}}return JSON.parse(text||'{}');}
 function assets(list) {
@@ -42,7 +44,7 @@ const server=http.createServer(async(req,res)=>{
       json(200,result);return;
     }
     if(req.method==='GET'&&publicFiles.has(url.pathname)){
-      const file=publicFiles.get(url.pathname),type=file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html';
+      const file=publicFiles.get(url.pathname),type=MIME.get(file.slice(file.lastIndexOf('.')))||'text/html';
       res.writeHead(200,{'Content-Type':type+'; charset=utf-8'});res.end(await fs.readFile(path.join(ROOT,file)));return;
     }
     json(404,{error:'Not found'});
