@@ -226,6 +226,7 @@ tr{animation:fadeIn .25s ease both}
       <span class="hero-meta" id="hero-meta"></span>
 
     </div>
+    <div class="household-rank" id="household-rank" aria-live="polite"></div>
     <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
   </div>
     <aside class="overview" aria-label="종목 현황">
@@ -513,7 +514,52 @@ async function syncMarketPulse() {
   try {
     marketPulse = await dataAPI('/api/pulse', {});
     renderMarketPulse();
+    renderHero();
   } catch {}
+}
+
+// ═══ KOREAN HOUSEHOLD NET WORTH ═════════
+// 2025 가계금융복지조사 (국가데이터처·한국은행, 2025-03-31 기준). Decile means are treated as the
+// midpoint of their decile; the 3억/10억 shares are published directly and corroborate the curve.
+const KR_NETWORTH_SOURCE = '2025년 가계금융복지조사';
+const KR_NETWORTH_CURVE = [
+  // [순자산 만원, 그 아래 가구 비율 %]
+  [-771, 5], [3029, 15], [7606, 25], [13317, 35], [20067, 45],
+  [28149, 55], [30000, 57], [39080, 65], [56645, 75], [87040, 85],
+  [100000, 88.2], [217122, 95],
+];
+function krHouseholdRank(krwManwon) {
+  if (!(krwManwon > 0)) return null;
+  const c = KR_NETWORTH_CURVE;
+  if (krwManwon <= c[0][0]) return { top: 100 - c[0][1], beyond: 'below' };
+  for (let i = 1; i < c.length; i++) {
+    if (krwManwon <= c[i][0]) {
+      const [x0, y0] = c[i - 1], [x1, y1] = c[i];
+      const below = y0 + (y1 - y0) * ((krwManwon - x0) / (x1 - x0));
+      return { top: 100 - below };
+    }
+  }
+  // Past the top decile's mean the survey gives no further shape, so this is stated as a bound.
+  return { top: 5, beyond: 'above' };
+}
+function formatTop(top) {
+  return top < 1 ? top.toFixed(2).replace(/0+$/, '').replace(/\.$/, '') : top < 10 ? top.toFixed(1) : Math.round(top);
+}
+function renderHouseholdRank(totalUsd) {
+  const box = document.getElementById('household-rank');
+  if (!box) return;
+  const rate = marketPulse?.usdKrw?.rate;
+  if (!rate || !(totalUsd > 0)) { box.innerHTML = ''; return; }
+  const manwon = totalUsd * rate / 10000;
+  const rank = krHouseholdRank(manwon);
+  if (!rank) { box.innerHTML = ''; return; }
+  const eok = manwon / 10000;
+  const amount = eok >= 1 ? `${eok.toFixed(eok >= 10 ? 0 : 1)}억원` : `${Math.round(manwon).toLocaleString()}만원`;
+  const label = rank.beyond === 'above' ? '상위 5% 이내'
+    : rank.beyond === 'below' ? '하위 5% 수준'
+    : `상위 ${formatTop(rank.top)}%`;
+  box.innerHTML = `<span class="rank-line">약 <b>${escapeHTML(amount)}</b> · 가구 순자산이라면 <b class="rank-top">${escapeHTML(label)}</b></span>
+    <span class="rank-note">${escapeHTML(KR_NETWORTH_SOURCE)} 기준 · 이 책의 코인 평가액만 반영</span>`;
 }
 
 // ═══ THEME ══════════════════════════════
@@ -895,6 +941,7 @@ function renderHero() {
   }
 
   document.getElementById('hero-meta').innerHTML = `<b>${coins.length}</b> 종목 · <span style="color:var(--green)">${up}▲</span> <span style="color:var(--red)">${dn}▼</span>`;
+  renderHouseholdRank(totalVal);
 
   document.getElementById('cnt-farming').textContent = farming.length;
   document.getElementById('cnt-options').textContent = options.length;

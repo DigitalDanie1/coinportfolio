@@ -427,3 +427,11 @@ tbody tr:hover{background:transparent}
 tbody tr:hover td{background:var(--row-hover)}
 .mark-pnl{font-weight:680;margin-left:auto}
 .mark-pnl.up{color:var(--green)}.mark-pnl.down{color:var(--red)}
+
+/* Where this amount would land among Korean households, stated as a comparison not a claim. */
+.household-rank{margin-top:14px}
+.household-rank:empty{display:none}
+.rank-line{display:block;font-size:.88rem;color:var(--text-2);font-weight:500}
+.rank-line b{color:var(--text-1);font-weight:650;font-variant-numeric:tabular-nums}
+.rank-line .rank-top{color:var(--main)}
+.rank-note{display:block;font-size:.73rem;color:var(--text-3);margin-top:4px}
