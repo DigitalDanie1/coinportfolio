@@ -53,7 +53,7 @@ coinData = function(c){
 };
 // The data service shares one datacentre IP, which GeckoTerminal throttles far below what this
 // book needs, so DEX candles are fetched from the browser where each user has their own limit.
-const DEX_HISTORY_TTL=3600000;
+const DEX_HISTORY_TTL=600000;
 const dexHistoryCache={};
 async function fetchDexCandles(dex){
   if(!dex||!/^[a-z0-9_-]{1,40}$/.test(dex.chain)||!/^[a-zA-Z0-9]{1,100}$/.test(dex.pair))return null;
@@ -108,10 +108,11 @@ function applyMarketResponse(response){
     const previous=marketByCoin[id];
     if(incoming.current_price==null&&previous?.current_price!=null)marketByCoin[id]={...previous,stale:true,message:incoming.message};
     else marketByCoin[id]=incoming;
-    // The service refills only a few DEX histories per request and forgets them between cold
-    // starts, so keep the longer series we already hold rather than dropping back to none.
+    // The service refills only a few DEX histories per request, so a response may carry none.
+    // Fall back to what we already hold only then — a longer old series must never beat a fresh
+    // one, or the chart pins itself to whatever it first accumulated.
     const kept=previous?.sparkline_in_7d?.price||[],fresh=marketByCoin[id]?.sparkline_in_7d?.price||[];
-    if(kept.length>fresh.length){
+    if(fresh.length<10&&kept.length>=10){
       marketByCoin[id]={...marketByCoin[id],sparkline_in_7d:{price:kept},
         price_change_percentage_7d_in_currency:marketByCoin[id].price_change_percentage_7d_in_currency??previous.price_change_percentage_7d_in_currency,
         chartSource:marketByCoin[id].chartSource||previous.chartSource};
