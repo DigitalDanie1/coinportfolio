@@ -77,7 +77,7 @@ function signalStrip(book, id) {
 }
 function journalCells(book,id,item) {
   const attrs = `data-book="${book}" data-id="${escapeHTML(id)}"`;
-  return `<td class="thesis-cell">${signalStrip(book,id)}<textarea class="inline-thesis" aria-label="Thesis" placeholder="투자 논리, 촉매, 무효화 조건…" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></td>
+  return `<td class="thesis-cell"><div class="thesis-stack">${signalStrip(book,id)}<textarea class="inline-thesis" aria-label="Thesis" placeholder="투자 논리, 촉매, 무효화 조건…" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></div></td>
     <td><select class="inline-conviction" aria-label="Conviction level" ${attrs} data-journal="conviction">${convictionOptions(item?.conviction)}</select></td>
     <td><button class="btn news-button" ${attrs} data-action="news">뉴스${typeof newsBadge==='function'?' · '+newsBadge(book,id).replace(/^뉴스 ?/,''):item?.newsNote?' · 메모':''}</button></td>`;
 }

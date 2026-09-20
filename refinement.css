@@ -481,3 +481,19 @@ tbody tr:hover td{background:var(--row-hover)}
 .house-row.next{color:var(--text-3)}
 .house-row.next b{color:var(--text-2);font-weight:600}
 .house-row.next i{color:var(--text-3);background:var(--surface-2)}
+
+/* Row height is set by the name and thesis blocks; short cells centre so the slack splits
+   above and below instead of pooling under them. */
+.table-wrap td.number,
+.table-wrap tbody td:nth-child(3),
+.table-wrap tbody td:nth-child(4),
+.table-wrap tbody td:nth-child(5),
+.table-wrap tbody td:nth-child(6),
+.table-wrap tbody td:nth-last-child(2),
+.table-wrap tbody td:nth-last-child(1){vertical-align:middle}
+.table-wrap td.market-chart-cell{vertical-align:middle}
+/* The thesis box grows into whatever height the row already has, turning dead space into
+   somewhere to write rather than a gap under the field. */
+.table-wrap td.thesis-cell{height:1px}
+.thesis-stack{display:flex;flex-direction:column;height:100%}
+.thesis-stack .inline-thesis{flex:1;min-height:70px}
