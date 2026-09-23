@@ -8,7 +8,7 @@ function marketChart(coin,data) {
   const period=data?.collectedHistory?"수집 기록":"7일";
   const chart = sparkSVG(prices, 'row-'+coin.id, 44, 128);
   const change=data?.price_change_percentage_7d_in_currency;
-  const content=chart?`<span class="market-chart" role="img" aria-label="${escapeHTML(coin.ticker)} ${period==='7일'?'최근 7일':period} 가격 추이">${chart}</span><span class="chart-change ${pCls(change)}">${period==='7일'?fPct(change)+' · ':''}${period}</span>`:`<span class="chart-unavailable">${coin.dex?'DEX 차트 연결됨':coin.gecko?'차트 미수신':'시세 ID 미연결'}</span>`;
+  const content=chart?`<span class="market-chart" role="img" aria-label="${escapeHTML(coin.ticker)} ${period==='7일'?'최근 7일':period} 가격 추이">${chart}</span><span class="chart-change ${pCls(change)}">${period==='7일'?fPct(change)+' · ':''}${period}</span>`:`<span class="chart-unavailable">${escapeHTML(data?.message||(coin.dex?'DEX 차트 연결됨':coin.gecko?'차트 미수신':'시세 ID 미연결'))}</span>`;
   return `<button class="chart-trigger" data-action="chart" data-id="${escapeHTML(coin.id)}" aria-label="${escapeHTML(coin.ticker)} TradingView 또는 DEX 차트 열기">${content}<span class="chart-open-label">차트 열기 ↗</span></button>${data?.chartSource?`<small>${escapeHTML(data.chartSource)}</small>`:''}`;
 }
 /* Local position journal. Premiums and farming amounts are recorded in USD. */
@@ -115,7 +115,7 @@ function renderTable() {
   body.innerHTML = rows.map(p => {
     if (book === 'spot') {
       const {coin:c, d, price, chg,mc,holdVal,h} = p;
-      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><strong>${escapeHTML(c.ticker)}</strong><small>${escapeHTML(c.name)}</small><small>${escapeHTML(c.note||'')}</small>${typeof marketStatus==='function'?`<small class="source-status">${escapeHTML(marketStatus(c))}</small>`:''}<span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number">${price==null?'미연결':fP(price)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number">${h?.qty?money(holdVal):'계좌 연결 필요'}</td>${journalCells(book,c.id,h)}</tr>`;
+      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><strong>${escapeHTML(c.ticker)}</strong><small>${escapeHTML(c.name)}</small><small>${escapeHTML(c.note||'')}</small>${typeof marketStatus==='function'?`<small class="source-status">${escapeHTML(marketStatus(c))}</small>`:''}<span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number">${price==null?escapeHTML(d?.message||'미연결'):fP(price)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number">${h?.qty?money(holdVal):'계좌 연결 필요'}</td>${journalCells(book,c.id,h)}</tr>`;
     }
     const pnl = book==='options'?optionPnL(p):farmingPnL(p);
     const title = book==='options'?p.ticker:p.name;
