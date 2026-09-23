@@ -141,14 +141,28 @@ function mergeAccountPositions(response){
   }
   save();renderAll();
 }
+// One request carries every stale ticker's news query, chunked only to keep a single payload
+// reasonable, instead of firing a separate POST per asset (that was ~60 requests on load).
+async function fetchNewsBatch(jobs){
+  for(let i=0;i<jobs.length;i+=40){
+    const chunk=jobs.slice(i,i+40);
+    const payload=chunk.map(({book,asset})=>{const d=assetDescriptor(book,asset);return {key:assetKey(book,asset.id),name:d.name,ticker:d.ticker};});
+    try{
+      const {data}=await dataAPI('/api/news',{assets:payload});
+      for(const {book,asset} of chunk){
+        const key=assetKey(book,asset.id),prior=newsByAsset[key],result=data[key];
+        newsByAsset[key]=result&&!result.status?result:{...prior,stale:true,error:result?.message||'뉴스 수신 실패 · 자동 재시도'};
+      }
+    }catch{
+      for(const {book,asset} of chunk){const key=assetKey(book,asset.id);newsByAsset[key]={...newsByAsset[key],stale:true,error:'뉴스 수신 실패 · 자동 재시도'};}
+    }
+  }
+}
 async function syncNews(force=false){
   if(!force&&Date.now()-lastNewsSync<900000)return;
   const jobs=[...coins.map(c=>({book:'spot',asset:c})),...farming.filter(p=>!p.closed).map(asset=>({book:'farming',asset})),...options.map(asset=>({book:'options',asset}))];
-  for(let i=0;i<jobs.length;i+=3)await Promise.all(jobs.slice(i,i+3).map(async({book,asset})=>{
-    const key=assetKey(book,asset.id),prior=newsByAsset[key];
-    if(!force&&prior?.updatedAt&&Date.now()-prior.updatedAt<900000)return;
-    try{newsByAsset[key]=await dataAPI('/api/news',{asset:assetDescriptor(book,asset)});}catch{newsByAsset[key]={...prior,stale:true,error:'뉴스 수신 실패 · 자동 재시도'};}
-  }));
+  const stale=jobs.filter(({book,asset})=>{const prior=newsByAsset[assetKey(book,asset.id)];return force||!prior?.updatedAt||Date.now()-prior.updatedAt>=900000;});
+  await fetchNewsBatch(stale);
   lastNewsSync=Date.now();saveAutomaticCache();renderTable();
   if(activeNews&&document.getElementById('news-feed'))renderNewsFeed(activeNews.book,activeNews.id);
 }
@@ -202,7 +216,7 @@ openNews = async function(book,id){
   showModal();renderNewsFeed(book,id);
   const key=assetKey(book,id);
   if(!newsByAsset[key]||Date.now()-newsByAsset[key].updatedAt>=900000){
-    try{newsByAsset[key]=await dataAPI('/api/news',{asset:assetDescriptor(book,asset)});saveAutomaticCache();}catch{newsByAsset[key]={...newsByAsset[key],error:'뉴스 연결 실패 · 다음 주기에 재시도',stale:true};}
+    await fetchNewsBatch([{book,asset}]);saveAutomaticCache();
     if(activeNews?.id===id&&activeNews.book===book)renderNewsFeed(book,id);renderTable();
   }
 };

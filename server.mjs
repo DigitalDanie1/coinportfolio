@@ -12,6 +12,10 @@ const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/po
 const MIME=new Map([['.js','text/javascript'],['.css','text/css'],['.png','image/png'],['.svg','image/svg+xml'],['.ico','image/x-icon']]);
 const origins=new Set(['null',`http://127.0.0.1:${PORT}`,`http://localhost:${PORT}`]);
 async function body(req) {let text='';for await(const part of req){text+=part;if(text.length>150000){const error=new Error('Request too large');error.status=413;throw error;}}return JSON.parse(text||'{}');}
+function newsAssets(list) {
+  if(!Array.isArray(list)||list.length>200)throw new Error('Invalid asset list');
+  return list.map(x=>({key:String(x.key||x.id||'').slice(0,160),name:String(x.name||'').slice(0,120),ticker:String(x.ticker||'').slice(0,50)})).filter(x=>x.key);
+}
 function assets(list) {
   if(!Array.isArray(list)||list.length>150)throw new Error('Invalid asset list');
   return list.map(x=>({id:String(x.id||'').slice(0,150),name:String(x.name||'').slice(0,120),ticker:String(x.ticker||'').slice(0,50),gecko:typeof x.gecko==='string'?x.gecko.slice(0,150):null,providerId:typeof x.providerId==='string'?x.providerId.slice(0,150):null,dex:x.dex?{chain:String(x.dex.chain||'').slice(0,40),pair:String(x.dex.pair||'').slice(0,100),token:String(x.dex.token||'').slice(0,100)}:null,equity:x.equity&&typeof x.equity.symbol==='string'?{symbol:x.equity.symbol.slice(0,20)}:null,cat:String(x.cat||'')}));
@@ -33,7 +37,7 @@ const server=http.createServer(async(req,res)=>{
       const input=await body(req);let result;
       if(url.pathname==='/api/markets')result=await service.markets(assets(input.coins));
       else if(url.pathname==='/api/chart'){const [asset]=assets([input.asset]);result=await service.chartSources(asset);}
-      else if(url.pathname==='/api/news'){const [asset]=assets([input.asset]);result=await service.news(asset);}
+      else if(url.pathname==='/api/news')result=await service.newsBatch(newsAssets(input.assets));
       else if(url.pathname==='/api/options'){
         if(!Array.isArray(input.positions)||input.positions.length>100)throw new Error('Invalid positions');
         // Only contract identifiers are forwarded; balances, entry prices, thesis and conviction stay local.

@@ -31,6 +31,21 @@ test('CoinPaprika supplies real history and metadata when Gecko is limited',asyn
   const data=(await d.markets([{id:'zec',name:'Zcash',ticker:'ZEC',gecko:'zcash'}])).data.zec;
   assert.equal(data.source,'CoinPaprika');assert.equal(data.current_price,30);assert.deepEqual(data.sparkline_in_7d.price,[20,25,30]);assert.equal(data.image,'https://example.com/logo.png');
 });
+test('news batches every asset into one call per RSS query and isolates per-asset failures',async()=>{
+  let calls=0;
+  const d=new DataService({fetcher:async url=>{
+    calls++;
+    if(url.includes('BadTicker'))return response('',500);
+    return response('<rss><item><title>A</title><link>https://example.com/a</link></item></rss>');
+  }});
+  const result=await d.newsBatch([{key:'spot:uni',name:'Uniswap',ticker:'UNI'},{key:'spot:bad',name:'BadTicker',ticker:'BAD'}]);
+  assert.equal(calls,2);
+  assert.equal(result.data['spot:uni'].articles.length,1);
+  assert.equal(result.data['spot:bad'].status,'error');
+  const cached=await d.newsBatch([{key:'spot:uni',name:'Uniswap',ticker:'UNI'}]);
+  assert.equal(calls,2,'same query should hit the shared cache, not refetch');
+  assert.equal(cached.data['spot:uni'].articles.length,1);
+});
 test('Deribit premiums convert with spot index, not underlying futures price; no entry data sent',async()=>{
   const urls=[];const d=new DataService({fetcher:async(url)=>{
     urls.push(url);

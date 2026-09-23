@@ -29,6 +29,15 @@ export function sanitize(list) {
   }));
 }
 
+export function sanitizeNewsAssets(list) {
+  if (!Array.isArray(list) || list.length > 200) throw new Error('Invalid asset list');
+  return list.map(x => ({
+    key: String(x.key || x.id || '').slice(0, 160),
+    name: String(x.name || '').slice(0, 120),
+    ticker: String(x.ticker || '').slice(0, 50)
+  })).filter(x => x.key);
+}
+
 export function errJson(res, e) {
   res.status(e.status || 502).json({
     error: e.status === 429 ? '데이터 소스 요청 제한' : '자동 데이터 갱신 실패',
