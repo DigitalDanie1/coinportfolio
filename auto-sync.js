@@ -224,10 +224,18 @@ function openAutoConnections(){
   document.getElementById('modal-body').innerHTML=`<div class="modal-head"><div class="minfo"><div class="ticker">자동 데이터 연결</div><div class="name">Thesis · Conviction은 동기화해도 유지됩니다.</div></div><button class="modal-close" aria-label="닫기" onclick="closeModal()">×</button></div>
   <div class="connection-list"><p><strong>시세 · 차트 · 로고</strong><span>CoinGecko / CoinPaprika · 1분</span></p><p><strong>News</strong><span>Google News 기사 · 15분</span></p><p><strong>옵션 현재가 · IV · Greeks</strong><span>Deribit 계약 · 1분 (거래소·만기·행사가 일치 시)</span></p><p><strong>PERP 마크 · 펀딩</strong><span>Hyperliquid · 1분</span></p></div>
   ${renderUnresolvedConnections()}<form id="connection-form"><div class="field"><label for="hl-address">Hyperliquid 공개 계좌 주소</label><input id="hl-address" value="${escapeHTML(autoConnections.hyperliquid||'')}" pattern="0x[a-fA-F0-9]{40}" placeholder="0x…" autocomplete="off"><p class="form-help">이 주소를 Hyperliquid 공개 API로 조회해 포지션·수량·진입가·증거금·미실현 손익을 자동으로 가져옵니다. 서명이나 주문 권한은 사용하지 않습니다.</p></div><button class="btn-save" type="submit">연결하고 자동 동기화</button></form>
-  <p class="form-help" style="margin-top:20px">다른 거래소의 보유 수량·진입가·보상·포인트·옵션 계좌는 해당 서비스 연결이 필요합니다. 아직 연결되지 않은 값은 기존 기록을 유지합니다. 비밀키를 이 화면이나 채팅에 입력하지 마세요.</p>`;
+  <p class="form-help" style="margin-top:20px">다른 거래소의 보유 수량·진입가·보상·포인트·옵션 계좌는 해당 서비스 연결이 필요합니다. 아직 연결되지 않은 값은 기존 기록을 유지합니다. 비밀키를 이 화면이나 채팅에 입력하지 마세요.</p>
+  <div class="mdivider">데이터 백업</div>
+  <p class="form-help">보유 종목·Thesis·Conviction을 포함한 전체 데이터를 JSON 파일로 내보내거나, 다른 기기에서 내보낸 파일을 불러옵니다. 서버로는 전송되지 않습니다.</p>
+  <div class="backup-actions">
+    <button type="button" class="btn" onclick="exportBackup()">JSON으로 내보내기</button>
+    <button type="button" class="btn" onclick="document.getElementById('backup-import-input').click()">JSON 파일 불러오기</button>
+    <input type="file" id="backup-import-input" accept="application/json" hidden>
+  </div>`;
   showModal();
   document.querySelectorAll('[data-provider-choice]').forEach(select=>select.addEventListener('change',()=>{const c=coins.find(x=>x.id===select.dataset.providerChoice);if(c&&select.value){c.providerId=select.value;c.gecko=select.value;save();closeModal();syncAutomatic();}}));
   document.getElementById('connection-form').addEventListener('submit',e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;autoConnections.hyperliquid=document.getElementById('hl-address').value.trim();localStorage.setItem(CONNECTION_KEY,JSON.stringify(autoConnections));closeModal();syncAutomatic();});
+  document.getElementById('backup-import-input').addEventListener('change',e=>{const file=e.target.files[0];if(file)importBackup(file);e.target.value='';});
 }
 const openRecordedPosition=openPosition;
 openPosition=function(book,id){

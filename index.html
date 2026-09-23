@@ -457,6 +457,56 @@ function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
+// ═══ BACKUP: EXPORT / IMPORT ════════════
+// Everything lives only in this browser's localStorage, so this is the only way to move a
+// portfolio to another device or keep a dated snapshot. Nothing here touches the network.
+function exportBackup() {
+  const payload = { format:'coin-portfolio-backup', version:1, exportedAt:new Date().toISOString(),
+    coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `coin-portfolio-backup-${localDate()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onerror = () => alert('파일을 읽을 수 없습니다.');
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); } catch(e) { alert('올바른 JSON 파일이 아닙니다.'); return; }
+    if (!data || typeof data !== 'object' || !Array.isArray(data.coins)) { alert('코인 포트폴리오 백업 파일 형식이 아닙니다.'); return; }
+    const heldCount = data.holdings && typeof data.holdings === 'object' ? Object.values(data.holdings).filter(h => h?.qty > 0).length : 0;
+    const summary = [
+      `종목 ${data.coins.length}개`,
+      `보유 기록 ${heldCount}개`,
+      `DEX Farming ${Array.isArray(data.farming) ? data.farming.length : 0}개`,
+      `Option 포지션 ${Array.isArray(data.options) ? data.options.length : 0}개`,
+      data.exportedAt ? `내보낸 시각: ${new Date(data.exportedAt).toLocaleString()}` : null
+    ].filter(Boolean).join('\n');
+    if (!confirm(`이 파일로 현재 기기의 데이터를 모두 교체합니다.\n\n${summary}\n\n계속할까요?`)) return;
+    coins = data.coins;
+    holdings = data.holdings && typeof data.holdings === 'object' ? data.holdings : {};
+    farming = Array.isArray(data.farming) ? data.farming : [];
+    farmingPairs = Array.isArray(data.farmingPairs) ? data.farmingPairs : null;
+    options = Array.isArray(data.options) ? data.options : [];
+    scenario = data.scenario && typeof data.scenario.text === 'string' ? data.scenario : {text:'',updatedAt:null};
+    reflections = data.reflections && typeof data.reflections.text === 'string' ? data.reflections : null;
+    appliedImports = Array.isArray(data.appliedImports) ? data.appliedImports : [];
+    removedDefaults = Array.isArray(data.removedDefaults) ? data.removedDefaults : [];
+    categories = Array.isArray(data.categories) && data.categories.length ? data.categories : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    save();
+    closeModal();
+    if (typeof initReflections === 'function') initReflections();
+    if (typeof initFarmingPairs === 'function') initFarmingPairs();
+    renderAll();
+    setStatus('ok','백업 파일을 불러왔습니다.');
+  };
+  reader.readAsText(file);
+}
+
 // ═══ NUMBER INPUTS ══════════════════════
 // type="number" rejects grouped text, so these fields are text and format as they are typed.
 function parseNumInput(value) {

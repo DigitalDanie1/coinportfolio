@@ -568,3 +568,6 @@ tbody tr:hover td{background:var(--row-hover)}
   .table-wrap table[data-book="spot"] tbody td:nth-child(2),
   .table-wrap table[data-book="spot"] tbody td:nth-child(5){display:none!important}
 }
+
+/* ── Backup export/import inside the auto-connect modal. ── */
+.backup-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
