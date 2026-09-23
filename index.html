@@ -381,6 +381,7 @@ let options = [];
 let scenario = {text:'',updatedAt:null};
 let reflections = null;
 let appliedImports = [];
+let removedDefaults = [];
 let mkt = {};
 let categories = [];
 let currentTab = 'all';
@@ -395,6 +396,7 @@ function load() {
       const d = JSON.parse(raw);
       coins = d.coins || [];
       appliedImports = Array.isArray(d.appliedImports) ? d.appliedImports : [];
+      removedDefaults = Array.isArray(d.removedDefaults) ? d.removedDefaults : [];
       holdings = d.holdings || {};
       farming = Array.isArray(d.farming) ? d.farming : [];
       farmingPairs = Array.isArray(d.farmingPairs) ? d.farmingPairs : null;
@@ -425,7 +427,7 @@ function load() {
         if (df.equity && !c.equity) c.equity = JSON.parse(JSON.stringify(df.equity));
       }
       for (const df of DEFAULTS) {
-        if (!coins.find(c => c.id === df.id)) coins.push(JSON.parse(JSON.stringify(df)));
+        if (!coins.find(c => c.id === df.id) && !removedDefaults.includes(df.id)) coins.push(JSON.parse(JSON.stringify(df)));
       }
       const fallback = categories[0].id;
       for (const c of coins) if (!categories.some(x => x.id === c.cat)) c.cat = fallback;
@@ -439,7 +441,7 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
 // ═══ NUMBER INPUTS ══════════════════════
@@ -710,7 +712,7 @@ function removeCategory(id, moveTo) {
 }
 
 function addCoin(c) { coins.push(c); save(); }
-function removeCoin(id) { coins = coins.filter(c => c.id !== id); delete holdings[id]; save(); }
+function removeCoin(id) { coins = coins.filter(c => c.id !== id); delete holdings[id]; if (DEFAULTS.some(df => df.id === id) && !removedDefaults.includes(id)) removedDefaults.push(id); save(); }
 function updateCoin(id, updates) { const c = coins.find(x => x.id === id); if(c) Object.assign(c, updates); save(); }
 function setHolding(id, qty, avgPrice, manualPrice, reason) {
   const prev = holdings[id] || {};

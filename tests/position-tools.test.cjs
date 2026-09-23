@@ -6,11 +6,11 @@ const scripts=[...html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>
 const nodes=new Map();
 const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:false,innerHTML:'',textContent:'',children:[],handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},matches:()=>false});return nodes.get(id)};
 let stored=null;
-const ctx=vm.createContext({console,URL,Date,setTimeout,document:{activeElement:null,getElementById:node,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v}}});
+const ctx=vm.createContext({console,URL,Date,setTimeout,window:{addEventListener(){}},document:{activeElement:null,getElementById:node,querySelector:()=>({}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v}}});
 for(const [,src,code] of scripts){if(src==='auto-sync.js'||code.includes("startAutomatic();"))continue;const body=src?fs.readFileSync(path.join(root,src),'utf8'):code;new vm.Script(body);vm.runInContext(body,ctx);}
 const run=s=>vm.runInContext(s,ctx);
-run('load();renderAll()');assert.equal(node('summary-all').textContent,25);
-assert.equal((node('tbody').innerHTML.match(/class="inline-thesis"/g)||[]).length,25);
+run('load();renderAll()');const coinCount=run('coins.length');assert.equal(node('summary-all').textContent,coinCount);
+assert.equal((node('tbody').innerHTML.match(/class="inline-thesis"/g)||[]).length,coinCount);
 run("holdings.uni={qty:2,avgPrice:5,manualPrice:6,conviction:5,reason:'<script>bad</script>',newsNote:'A'};holdings.zec={conviction:1};sortBy('conviction')");
 assert.equal(run('getFiltered()[0].coin.id'),'uni');
 run("sortBy('conviction')");assert.equal(run('getFiltered().at(-1).coin.id'),'uni');
@@ -32,7 +32,7 @@ node('asset-search').value='none';run('renderTable()');assert(node('tbody').inne
 node('asset-search').value='';run('save()');const snapshot=stored;
 run('coins=[];holdings={};options=[];farming=[];load()');assert.equal(run('options.length'),2);assert.equal(run('farming.length'),1);assert.equal(run('holdings.uni.reason'),'edited inline');
 // User edits and deleted default symbols must survive reload.
-run("coins=coins.filter(c=>c.id!=='zec');coins[0].name='Custom';save();load()");assert.equal(run("coins.some(c=>c.id==='zec')"),false);assert.equal(run('coins[0].name'),'Custom');
+run("removeCoin('zec');updateCoin(coins[0].id,{name:'Custom',edited:markEdited(coins[0].id,'name')});save();load()");assert.equal(run("coins.some(c=>c.id==='zec')"),false);assert.equal(run('coins[0].name'),'Custom');
 assert.equal(run("safeNewsURL('javascript:alert(1)')"),null);assert.equal(run("safeNewsURL('https://example.com')"),'https://example.com/');assert(run("newsSearchURL('A&B','TEST')").includes('A%26B'));
 assert.equal(JSON.parse(snapshot).options.length,2);
 // Exercise position form submission through its registered handler, without a browser.

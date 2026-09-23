@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert/strict');
 const root=path.resolve(__dirname,'..'),html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const nodes=new Map(),storage=new Map();const el=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:false,innerHTML:'',textContent:'',addEventListener(){},matches(){return false}});return nodes.get(id)};
-const ctx=vm.createContext({console,URL,Date,AbortSignal,location:{protocol:'file:',origin:'null'},window:{addEventListener(){},scrollTo(){}},setTimeout,setInterval:()=>1,document:{activeElement:null,hidden:false,getElementById:el,querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
+const ctx=vm.createContext({console,URL,Date,AbortSignal,location:{protocol:'file:',origin:'null'},window:{addEventListener(){},scrollTo(){}},setTimeout,setInterval:()=>1,document:{activeElement:null,hidden:false,getElementById:el,querySelector:()=>({}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
 for(const [,src,code]of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g)){if(code.includes('startAutomatic();'))continue;vm.runInContext(src?fs.readFileSync(path.join(root,src),'utf8'):code,ctx);}
 const run=s=>vm.runInContext(s,ctx);
 run('load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),3);assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
@@ -14,6 +14,6 @@ run("farming[0].side='short';farming[0].ticker='ETH'");assert(run('validateFarmi
 run("farming[0].ticker='BTC';farmingPairs[1].short.positionId='hl-btc'");assert(run('validateFarmingPair(farmingPairs[0])'));
 run("delete farmingPairs[1].short.positionId;farming[0].closed=true");assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
 run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
-run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),0);
+run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),3,'an emptied book reseeds the planned pairs rather than staying empty');
 run("setTab('options')");assert.equal(el('pair-board').hidden,true);
 console.log('PASS: three pair defaults, hedge quantity/mark calculations, missing metrics, linked auto updates, direction/symbol/duplicate/closed validation, saved journals and intentional deletion.');

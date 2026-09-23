@@ -73,12 +73,18 @@ test('chart discovery uses exact contracts and ignores counterfeit same-symbol p
 });
 test('explicit DEX pools bypass symbol discovery, preserve cap semantics and collect only real observations',async()=>{
   const dex={chain:'solana',pair:'AbC123',token:'Token123'};let calls=0;
-  const d=new DataService({fetcher:async url=>{calls++;assert.equal(url,'https://api.dexscreener.com/latest/dex/pairs/solana/AbC123');return response({pairs:[{chainId:'solana',pairAddress:'AbC123',baseToken:{address:'Token123',name:'Hypurr',symbol:'PURR'},priceUsd:'0.02',fdv:500,image:null,info:{imageUrl:'https://example.com/logo.png'},priceChange:{h24:2},volume:{h24:100}}]});}});
+  const d=new DataService({fetcher:async url=>{
+    calls++;
+    if(url.includes('geckoterminal'))return response({data:{attributes:{ohlcv_list:[]}}});
+    assert.equal(url,'https://api.dexscreener.com/latest/dex/pairs/solana/AbC123');
+    return response({pairs:[{chainId:'solana',pairAddress:'AbC123',baseToken:{address:'Token123',name:'Hypurr',symbol:'PURR'},priceUsd:'0.02',fdv:500,image:null,info:{imageUrl:'https://example.com/logo.png'},priceChange:{h24:2},volume:{h24:100}}]});
+  }});
   const coin={id:'purr-sol',ticker:'PURR',dex};
   const a=(await d.markets([coin])).data[coin.id];
   assert.equal(a.current_price,.02);assert.equal(a.market_cap,null);assert.equal(a.fdv,500);assert.equal(a.image,'https://example.com/logo.png');assert.deepEqual(a.sparkline_in_7d.price,[]);assert.equal(a.collectedHistory.length,1);
-  await d.markets([coin]);assert.equal(calls,1);assert.equal(d.cache.get(a.canonicalId+':history').data.length,1);
-  const chart=await d.chartSources(coin);assert.equal(chart.sources[0].url,'https://dexscreener.com/solana/AbC123');assert.equal(calls,1);
+  const callsAfterFirst=calls;
+  await d.markets([coin]);assert.equal(calls,callsAfterFirst,'a second call should reuse the cached pair and candle data');assert.equal(d.cache.get(a.canonicalId+':history').data.length,1);
+  const chart=await d.chartSources(coin);assert.equal(chart.sources[0].url,'https://dexscreener.com/solana/AbC123');assert.equal(calls,callsAfterFirst);
   await assert.rejects(()=>d.chartSources({...coin,dex:{...dex,pair:'../evil'}}));
   const bad=new DataService({fetcher:async()=>response({pairs:[{chainId:'solana',pairAddress:'abc123',baseToken:{address:'Token123'}}]})});
   assert.equal((await bad.markets([coin])).data[coin.id].status,'unavailable');
