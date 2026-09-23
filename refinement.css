@@ -497,3 +497,56 @@ tbody tr:hover td{background:var(--row-hover)}
 .table-wrap td.thesis-cell{height:1px}
 .thesis-stack{display:flex;flex-direction:column;height:100%}
 .thesis-stack .inline-thesis{flex:1;min-height:70px}
+
+/* ── Compact two-line rows: ticker+name on one line, category/source on the next,
+   instead of four stacked lines, so more of the watchlist fits on screen. ── */
+.td-title{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;min-width:0}
+.td-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.td-subname{font-size:.82rem;font-weight:500;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.table-wrap table[data-book="spot"] td{padding-top:11px;padding-bottom:11px}
+.table-wrap table[data-book="spot"] td small.source-status{margin-top:3px}
+.table-wrap table[data-book="spot"] .market-chart{width:104px;height:34px;margin:0 0 2px}
+
+/* ── Responsive spot table: hide lower-priority columns before the row layout breaks down,
+   then switch to compact cards under ~640px instead of clipping or forcing page scroll. ── */
+@media(max-width:1000px){
+  .table-wrap table[data-book="spot"] th:nth-child(5),
+  .table-wrap table[data-book="spot"] td:nth-child(5){display:none}
+}
+@media(max-width:860px){
+  .table-wrap table[data-book="spot"] th:nth-child(2),
+  .table-wrap table[data-book="spot"] td:nth-child(2){display:none}
+  .table-wrap table[data-book="spot"]{min-width:0}
+  .table-wrap table[data-book="spot"] th:nth-child(1){width:150px}
+  .table-wrap table[data-book="spot"] th:nth-child(3){width:130px!important}
+  .table-wrap table[data-book="spot"] th:nth-child(4){width:76px}
+  .table-wrap table[data-book="spot"] th:nth-child(6){width:110px}
+  .table-wrap table[data-book="spot"] th:nth-child(7){width:115px}
+  .table-wrap table[data-book="spot"] th:nth-child(8){width:80px}
+  .table-wrap table[data-book="spot"] th:nth-child(9){width:70px}
+  /* A resolved-but-unpriced asset's status message is prose, not a number; let it wrap inside
+     its own column instead of overflowing into the next one at these narrower widths. */
+  .table-wrap table[data-book="spot"] td.number{white-space:normal;overflow-wrap:break-word;line-height:1.35}
+}
+@media(max-width:640px){
+  .table-wrap table[data-book="spot"]{width:100%;table-layout:auto}
+  .table-wrap table[data-book="spot"] thead{display:none}
+  .table-wrap table[data-book="spot"] tbody{display:block}
+  .table-wrap table[data-book="spot"] tbody tr{display:flex;flex-direction:column;gap:8px;padding:14px;margin-bottom:10px;border:1px solid var(--border-h);border-radius:var(--r);background:var(--surface)}
+  .table-wrap table[data-book="spot"] tbody tr:last-child{margin-bottom:0}
+  .table-wrap table[data-book="spot"] tbody td{display:block!important;width:100%!important;padding:0!important;border-bottom:0}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(1){order:1}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(3){order:2;white-space:normal;overflow-wrap:break-word}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(4){order:2}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(6){order:3;font-size:.85rem;color:var(--text-2)}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(6)::before{content:'보유 ';color:var(--text-3)}
+  /* The desktop thesis cell relies on a table-cell height:1px trick to fill the row; in block/card
+     layout that just collapses it and overlaps the next field, so give it its own height here. */
+  .table-wrap table[data-book="spot"] tbody td:nth-child(7){order:4;height:auto!important}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(7) .thesis-stack{height:auto}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(8){order:5}
+  .table-wrap table[data-book="spot"] tbody td:nth-child(9){order:6}
+  .table-wrap table[data-book="spot"] tbody td.market-chart-cell,
+  .table-wrap table[data-book="spot"] tbody td:nth-child(2),
+  .table-wrap table[data-book="spot"] tbody td:nth-child(5){display:none!important}
+}
