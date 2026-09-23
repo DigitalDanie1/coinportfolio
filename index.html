@@ -219,7 +219,7 @@ tr{animation:fadeIn .25s ease both}
   <div class="automation-banner"><span id="auto-status" role="status">자동 데이터 연결 중…</span><span>직접 관리: 시나리오 · 원칙·복기 · Thesis · Conviction</span></div>
   <section class="hero" id="hero" aria-label="포트폴리오 요약">
     <div>
-    <div class="hero-label">현물 보유 자산 <span class="mono">· USD</span></div>
+    <div class="hero-label" id="hero-label">현물 보유 자산 <span class="mono">· USD</span></div>
     <div class="hero-val" id="hero-val">$0.00</div>
     <div class="hero-sub">
       <span class="hero-change flat" id="hero-chg">—</span>
@@ -228,6 +228,19 @@ tr{animation:fadeIn .25s ease both}
     </div>
     <div class="goal-bar" id="goal-bar" aria-live="polite"></div>
     <div class="house-ladder" id="house-ladder" aria-live="polite"></div>
+    <div class="hero-watchlist" id="hero-watchlist" hidden>
+      <div class="watchlist-groups">
+        <div class="watchlist-group">
+          <div class="watchlist-group-label">상승 TOP 3</div>
+          <div class="watchlist-chips" id="watchlist-gainers"></div>
+        </div>
+        <div class="watchlist-group">
+          <div class="watchlist-group-label">하락 TOP 3</div>
+          <div class="watchlist-chips" id="watchlist-losers"></div>
+        </div>
+      </div>
+      <p class="watchlist-prompt">보유 수량을 입력하면 이 자리에 내 자산 합계가 표시됩니다.</p>
+    </div>
   </div>
     <aside class="overview" aria-label="시장 현황">
       <div class="market-pulse" id="market-pulse" aria-live="polite"></div>
@@ -949,6 +962,23 @@ function resetFilters() {
 function catColor(cat) { return catColorOf(cat); }
 
 
+function renderWatchlistMovers() {
+  const priced = coins.map(c => {
+    const d = c.gecko ? mkt[c.gecko] : null;
+    return d && d.current_price != null && d.price_change_percentage_24h != null ? {c,d} : null;
+  }).filter(Boolean);
+  const chip = ({c,d}) => {
+    const chg = d.price_change_percentage_24h;
+    return `<button type="button" class="watchlist-chip ${chg>=0?'up':'down'}" onclick="openDetail('${escapeHTML(c.id)}')"><strong>${escapeHTML(c.ticker)}</strong><span>${fPct(chg)}</span></button>`;
+  };
+  const fill = (id, list) => {
+    document.getElementById(id).innerHTML = list.length
+      ? list.map(chip).join('')
+      : '<span class="watchlist-empty">시세 수신 중…</span>';
+  };
+  fill('watchlist-gainers', [...priced].sort((a,b) => b.d.price_change_percentage_24h - a.d.price_change_percentage_24h).slice(0,3));
+  fill('watchlist-losers', [...priced].sort((a,b) => a.d.price_change_percentage_24h - b.d.price_change_percentage_24h).slice(0,3));
+}
 function renderHero() {
   let totalVal = 0, totalCost = 0, up = 0, dn = 0, tracked = 0;
   for (const c of coins) {
@@ -967,7 +997,22 @@ function renderHero() {
   }
 
   const heroVal = document.getElementById('hero-val');
-  heroVal.textContent = totalVal > 0 ? fP(totalVal) : '$0.00';
+  const heroLabel = document.getElementById('hero-label');
+  const heroWatchlist = document.getElementById('hero-watchlist');
+  if (totalVal > 0) {
+    heroLabel.innerHTML = '현물 보유 자산 <span class="mono">· USD</span>';
+    heroVal.className = 'hero-val';
+    heroVal.textContent = fP(totalVal);
+    heroWatchlist.hidden = true;
+  } else {
+    // Nothing held yet: a giant "$0.00" says nothing useful, so lead with what the watchlist
+    // is actually doing today and let people jump straight into a mover instead.
+    heroLabel.innerHTML = '관심 종목 <span class="mono">· 24H 동향</span>';
+    heroVal.className = 'hero-val hero-val-alt';
+    heroVal.innerHTML = `<span class="up">${up}▲</span> <span class="down">${dn}▼</span>`;
+    renderWatchlistMovers();
+    heroWatchlist.hidden = false;
+  }
   document.getElementById('summary-all').textContent = coins.length;
   document.getElementById('summary-held').textContent = coins.filter(c => holdings[c.id]?.qty > 0).length;
   document.getElementById('summary-linked').textContent = tracked;

@@ -498,6 +498,24 @@ tbody tr:hover td{background:var(--row-hover)}
 .thesis-stack{display:flex;flex-direction:column;height:100%}
 .thesis-stack .inline-thesis{flex:1;min-height:70px}
 
+/* ── Hero with nothing held: lead with the watchlist's own day instead of a dead "$0.00". ── */
+.hero-val-alt{font-size:clamp(1.8rem,3.4vw,2.6rem)}
+.hero-val-alt .up{color:var(--green)}
+.hero-val-alt .down{color:var(--red)}
+.hero-watchlist{margin-top:18px}
+.watchlist-groups{display:flex;gap:28px;flex-wrap:wrap}
+.watchlist-group-label{font-size:.76rem;color:var(--text-3);margin-bottom:8px;font-weight:550}
+.watchlist-chips{display:flex;gap:8px;flex-wrap:wrap}
+.watchlist-chip{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border-h);border-radius:999px;padding:6px 12px;font:inherit;cursor:pointer;color:var(--text-1);transition:border-color .12s,background .12s}
+.watchlist-chip:hover{background:var(--surface-2);border-color:var(--main)}
+.watchlist-chip strong{font-size:.82rem;font-weight:650}
+.watchlist-chip span{font-family:'JetBrains Mono',monospace;font-size:.76rem;font-weight:600}
+.watchlist-chip.up span{color:var(--green)}
+.watchlist-chip.down span{color:var(--red)}
+.watchlist-empty{font-size:.78rem;color:var(--text-3)}
+.watchlist-prompt{font-size:.79rem;color:var(--text-3);margin-top:14px}
+@media(max-width:640px){.watchlist-groups{gap:18px}}
+
 /* ── Compact two-line rows: ticker+name on one line, category/source on the next,
    instead of four stacked lines, so more of the watchlist fits on screen. ── */
 .td-title{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;min-width:0}
