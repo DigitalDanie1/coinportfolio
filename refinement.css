@@ -630,3 +630,19 @@ tbody tr:hover td{background:var(--row-hover)}
 
 /* ── Backup export/import inside the auto-connect modal. ── */
 .backup-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+
+/* Choose two venues to create a pair, without an up-front form. */
+button.venue-chip{font-family:inherit;text-align:left;cursor:pointer;min-height:62px;width:100%}
+button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
+.venue-chip.selected{border-color:var(--main);background:var(--surface-3);box-shadow:0 0 0 2px var(--main);color:var(--text-1)}
+.venue-chip small{display:block;font-size:.64rem;margin-top:4px;color:var(--text-3)}
+.venue-chip.selected small{color:var(--text-1);font-weight:600}
+.venue-mark img{z-index:1}
+.pair-picker-hint{font-size:.83rem;line-height:1.7;margin-bottom:14px;color:var(--text-1)}
+.pair-picker-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;font-size:.72rem;color:var(--text-3);line-height:1.7}
+.pair-card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pair-card-actions .btn{font-size:.72rem;padding:8px 10px}
+.pair-empty-slot{border:1px dashed var(--border-h);border-radius:12px;padding:22px;display:flex;gap:18px;align-items:center;color:var(--text-3);font-size:.8rem}
+.pair-empty-slot strong{color:var(--text-2);white-space:nowrap}
+.pair-archive{margin:20px 0;font-size:.8rem}.pair-archive summary{cursor:pointer;margin-bottom:10px}.pair-archive .btn{margin:4px}
+@media(max-width:640px){.pair-card-head{align-items:flex-start;flex-direction:column}.pair-card-actions{justify-content:flex-start}.pair-empty-slot{align-items:flex-start;flex-direction:column;gap:8px}}

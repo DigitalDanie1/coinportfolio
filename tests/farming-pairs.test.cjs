@@ -4,7 +4,18 @@ const nodes=new Map(),storage=new Map();const el=id=>{if(!nodes.has(id))nodes.se
 const ctx=vm.createContext({console,URL,Date,AbortSignal,location:{protocol:'file:',origin:'null'},window:{addEventListener(){},scrollTo(){}},setTimeout,setInterval:()=>1,document:{activeElement:null,hidden:false,getElementById:el,querySelector:()=>({}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
 for(const [,src,code]of html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>/g)){if(code.includes('startAutomatic();'))continue;vm.runInContext(src?fs.readFileSync(path.join(root,src),'utf8'):code,ctx);}
 const run=s=>vm.runInContext(s,ctx);
-run('load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),3);assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
+run('load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),0);
+run("selectFarmingVenue('risex')");assert.equal(run('farmingPairs.length'),0);assert.equal(run('selectedVenue'),'risex');
+run("selectFarmingVenue('risex')");assert.equal(run('selectedVenue'),null);
+run("selectFarmingVenue('risex');selectFarmingVenue('truenorth')");assert.equal(run('farmingPairs.length'),1);assert.equal(run('farmingPairs[0].long.venue'),'RiseX');assert.equal(run('farmingPairs[0].short.venue'),'Truenorth');assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
+run("selectFarmingVenue('arcus');selectFarmingVenue('risex')");assert.equal(run('farmingPairs.length'),1);assert.equal(run('selectedVenue'),'arcus');
+run("selectFarmingVenue('entropy');selectFarmingVenue('hello');selectFarmingVenue('mnx');selectFarmingVenue('pacifica');selectFarmingVenue('qfex');selectFarmingVenue('quote');selectFarmingVenue('n1')");
+assert.equal(run('activeFarmingPairs().length'),5);assert.equal(run('venueUsage().filter(v=>v.active).length'),10);assert(!run('renderVenueRoster()').includes('href='));
+run("farmingPairs[0].reason='Preserved';swapFarmingSides(farmingPairs[0].id)");assert.equal(run('farmingPairs[0].long.venue'),'Truenorth');
+run('unpairFarming(farmingPairs[0].id)');assert.equal(run('activeFarmingPairs().length'),4);assert.equal(run('farmingPairs[0].reason'),'Preserved');assert.equal(run('farmingPairs[0].archived'),true);
+run("selectFarmingVenue('risex');selectFarmingVenue('truenorth');save();load();initFarmingPairs()");assert.equal(run('activeFarmingPairs().length'),5);assert.equal(run('farmingPairs.length'),6);
+run("farmingPairs=[{id:'p1',long:{},short:{}},{id:'p2',long:{},short:{}}]");
+
 run("farmingPairs[0]={id:'pair-1',name:'Pair',ticker:'BTC',long:{venue:'A',quantity:2,mark:100,points7:10,cost7:2},short:{venue:'B',quantity:2,mark:101},reason:'Keep thesis',conviction:5}");
 assert.equal(run('pairMetrics(farmingPairs[0]).net'),0);assert.equal(run('pairMetrics(farmingPairs[0]).gross'),402);assert.equal(run('pairEfficiency(farmingPairs[0].long)'),.2);assert.equal(run('pairEfficiency(farmingPairs[0].short)'),null);
 run('farmingPairs[0].short.quantity=1');assert.equal(run('pairMetrics(farmingPairs[0]).net'),1);assert.equal(run('pairMetrics(farmingPairs[0]).imbalance'),50);
@@ -14,12 +25,12 @@ run("farming[0].side='short';farming[0].ticker='ETH'");assert(run('validateFarmi
 run("farming[0].ticker='BTC';farmingPairs[1].short.positionId='hl-btc'");assert(run('validateFarmingPair(farmingPairs[0])'));
 run("delete farmingPairs[1].short.positionId;farming[0].closed=true");assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
 run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
-run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),3,'an emptied book reseeds the planned pairs rather than staying empty');
+run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),0,'unpaired books stay empty');
 run("setTab('options')");assert.equal(el('pair-board').hidden,true);
 assert.equal(run("FARMING_VENUES.length"),10,'N1 brings the roster to ten venues');
-run("farmingPairs[0].long.venue='N1'");
+run("farmingPairs=[{long:{venue:'N1'},short:{}}]");
 assert.equal(run("venueUsage().find(v=>v.key==='n1').active"),true,'typing N1 activates the N1 venue');
 run("farmingPairs[0].long.venue='RiseN1X'");
 assert.equal(run("venueUsage().find(v=>v.key==='n1').active"),false,"a venue merely containing 'n1' must not false-match the short alias");
 run("farmingPairs[0].long.venue='A'");
-console.log('PASS: three pair defaults, hedge quantity/mark calculations, missing metrics, linked auto updates, direction/symbol/duplicate/closed validation, saved journals, intentional deletion, and N1 word-boundary alias matching.');
+console.log('PASS: two-click creation, selection cancellation, ten unique venues/five pairs, archive/re-pair, direction swap, persistence, hedge calculations, connected positions and validation.');

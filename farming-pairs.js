@@ -12,46 +12,50 @@ const FARMING_VENUES=[
   {key:'quote',     name:'Quote',       logo:null,                  site:null,                     aliases:['quote']},
   {key:'n1',        name:'N1',          logo:'logos/n1.png',        site:'https://n1.xyz',         aliases:['n1','n 1','n1.xyz','01 exchange','01.xyz']}
 ];
-function venueUsage(){
-  const typed=new Set(farmingPairs.flatMap(p=>{const m=pairMetrics(p);return [m.long.venue,m.short.venue];}).filter(Boolean).map(v=>v.trim().toLowerCase()));
-  // Short aliases (<=3 chars, e.g. 'n1', 'tn') risk false-matching via includes() on longer typed
-  // venue names, so require a whole-word match for those; longer aliases keep substring matching.
-  const matches=(t,a)=>a.length<=3?new RegExp(`(^|[^a-z0-9])${a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}($|[^a-z0-9])`).test(` ${t} `):t===a||t.includes(a);
-  return FARMING_VENUES.map(v=>({...v,active:[...typed].some(t=>v.aliases.some(a=>matches(t,a)))}));
-}
+const PAIR_STRATEGY='공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토';
+let selectedVenue=null,pairPickerMessage='';
+function activeFarmingPairs(){return (farmingPairs||[]).filter(p=>!p.archived);}
+function venueKey(name){const value=String(name||'').trim().toLowerCase();return FARMING_VENUES.find(v=>v.aliases.includes(value))?.key||value;}
+function venuePair(key){return activeFarmingPairs().find(p=>['long','short'].some(side=>venueKey(pairLeg(p,side).venue)===key));}
+function venueUsage(){return FARMING_VENUES.map(v=>({...v,active:!!venuePair(v.key)}));}
+function initFarmingPairs(){if(farmingPairs===null){farmingPairs=[];save();}}
 function renderVenueRoster(){
   const venues=venueUsage(),done=venues.filter(v=>v.active).length;
-  const chip=v=>{
-    const mark=`<span class="venue-mark">${v.logo?`<img src="${escapeHTML(v.logo)}" alt="" loading="lazy" onerror="this.remove()">`:''}<b>${escapeHTML(v.name.slice(0,2).toUpperCase())}</b></span><span>${escapeHTML(v.name)}</span>`;
-    return v.site
-      ? `<a class="venue-chip${v.active?' on':''}" href="${escapeHTML(v.site)}" target="_blank" rel="noopener noreferrer">${mark}</a>`
-      : `<span class="venue-chip${v.active?' on':''}">${mark}</span>`;
-  };
-  return `<div class="venue-roster"><div class="venue-roster-head"><strong>파밍 대상 ${FARMING_VENUES.length}곳</strong><span>${done}곳 페어에 연결됨 · ${FARMING_VENUES.length-done}곳 미연결</span></div><div class="venue-grid">${venues.map(chip).join('')}</div></div>`;
+  const selected=FARMING_VENUES.find(v=>v.key===selectedVenue);
+  const hint=pairPickerMessage||(selected?`${selected.name} 선택됨 · 함께 묶을 두 번째 거래소를 선택하세요`:'거래소 심볼 2개를 누르면 즉시 페어가 만들어집니다.');
+  return `<div class="venue-roster" id="venue-picker"><div class="venue-roster-head"><strong>거래소 선택 · ${activeFarmingPairs().length}/5 페어</strong><span>${done}/10 거래소 연결</span></div><p class="pair-picker-hint" role="status" aria-live="polite">${escapeHTML(hint)}</p><div class="venue-grid">${venues.map(v=>{
+    const pair=venuePair(v.key),chosen=selectedVenue===v.key;
+    return `<button type="button" class="venue-chip${v.active?' on':''}${chosen?' selected':''}" data-venue-pick="${v.key}" aria-pressed="${chosen}" aria-label="${escapeHTML(v.name)}${pair?' · '+escapeHTML(pair.name)+'에 연결됨':' 선택'}"><span class="venue-mark">${v.logo?`<img src="${escapeHTML(v.logo)}" alt="" loading="lazy" onerror="this.remove()">`:''}<b>${escapeHTML(v.name.slice(0,2).toUpperCase())}</b></span><span>${escapeHTML(v.name)}<small>${chosen?'첫 번째 선택':pair?'페어 연결됨':'선택 가능'}</small></span></button>`;
+  }).join('')}</div><div class="pair-picker-footer"><span>먼저 고른 거래소는 Long, 다음은 Short로 시작합니다. 방향은 페어에서 바꿀 수 있습니다.</span>${selected?'<button class="btn" data-pair-cancel>선택 취소</button>':''}</div></div>`;
 }
-const PAIR_PLAN=[
-  {id:'pair-quote-truenorth', name:'Quote × Truenorth', long:'Quote',  short:'Truenorth'},
-  {id:'pair-qfex-risex',      name:'QFEX × RiseX',      long:'QFEX',   short:'RiseX'},
-  {id:'pair-arcus-entropy',   name:'Arcus × Entropy',   long:'Arcus',  short:'Entropy'}
-];
-const PAIR_STRATEGY='공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토';
-function planPair(p){
-  return {id:p.id,name:p.name,ticker:'',
-    long:{venue:p.long,side:'long',manual:true},
-    short:{venue:p.short,side:'short',manual:true},
-    reason:'',conviction:0,strategy:PAIR_STRATEGY};
+function selectFarmingVenue(key){
+  initFarmingPairs();const venue=FARMING_VENUES.find(v=>v.key===key);if(!venue)return;
+  pairPickerMessage='';
+  if(key===selectedVenue){selectedVenue=null;renderPairBoard();return;}
+  const existing=venuePair(key);
+  if(existing){if(!selectedVenue){openFarmingPair(existing.id);return;}pairPickerMessage='이미 연결된 거래소입니다. 페어를 해제하면 다시 선택할 수 있습니다.';renderPairBoard();return;}
+  if(activeFarmingPairs().length>=5){pairPickerMessage='5개 페어가 모두 구성되었습니다. 기존 페어를 해제해 조합을 바꿔보세요.';renderPairBoard();return;}
+  if(!selectedVenue){selectedVenue=key;renderPairBoard();return;}
+  const first=FARMING_VENUES.find(v=>v.key===selectedVenue);
+  if(!first||venuePair(first.key)){selectedVenue=null;pairPickerMessage='거래소 연결이 변경되었습니다. 다시 선택하세요.';renderPairBoard();return;}
+  const pair={id:genId('pair'),name:first.name+' × '+venue.name,ticker:'',long:{venue:first.name},short:{venue:venue.name},reason:'',conviction:0,strategy:PAIR_STRATEGY};
+  farmingPairs.push(pair);
+  if(!save()){farmingPairs.pop();pairPickerMessage='저장하지 못했습니다. 다시 선택해 주세요.';renderPairBoard();return;}
+  selectedVenue=null;pairPickerMessage=pair.name+' 페어를 만들었습니다. 종목·수량은 나중에 설정할 수 있습니다.';
+  document.getElementById('asset-search').value='';document.getElementById('held-only').checked=false;
+  renderAll();
 }
-function initFarmingPairs(){
-  if(farmingPairs===null){farmingPairs=PAIR_PLAN.map(planPair);save();return;}
-  // Seed any planned pair a saved book predates, leaving the user's own pairs alone.
-  let changed=false;
-  for(const p of PAIR_PLAN)if(!farmingPairs.some(x=>x.id===p.id)){farmingPairs.push(planPair(p));changed=true;}
-  if(changed){
-    // Drop the original unnamed placeholders, but only while still untouched.
-    const blank=p=>/^pair-[123]$/.test(p.id)&&!p.ticker&&!p.reason&&!p.conviction&&!p.long?.venue&&!p.short?.venue&&!p.long?.positionId&&!p.short?.positionId;
-    farmingPairs=farmingPairs.filter(p=>!blank(p));
-    save();
-  }
+function unpairFarming(id){
+  const pair=activeFarmingPairs().find(p=>p.id===id);if(!pair)return;
+  pair.archived=true;
+  if(!save()){delete pair.archived;return;}
+  selectedVenue=null;pairPickerMessage=pair.name+' 연결을 해제했습니다. 기존 기록은 보관함에 남아 있습니다.';renderAll();
+}
+function swapFarmingSides(id){
+  const pair=activeFarmingPairs().find(p=>p.id===id);if(!pair)return;
+  if(pair.long.positionId||pair.short.positionId){pairPickerMessage='계좌에 연결된 포지션은 실제 방향을 따릅니다. 페어 설정에서 연결을 변경하세요.';renderPairBoard();return;}
+  [pair.long,pair.short]=[pair.short,pair.long];
+  if(!save()){[pair.long,pair.short]=[pair.short,pair.long];return;}renderAll();
 }
 function pairNumber(value){return value===null||value===undefined||value===''||!Number.isFinite(Number(value))?null:Number(value);}
 function pairLeg(pair,side){
@@ -77,19 +81,26 @@ function pairEfficiency(leg){const points=pairNumber(leg.points7),cost=pairNumbe
 function renderPairBoard(){
   initFarmingPairs();
   const query=document.getElementById('asset-search').value.trim().toLowerCase(),held=document.getElementById('held-only').checked;
-  const pairs=farmingPairs.filter(p=>{const m=pairMetrics(p);return (!query||[p.name,p.ticker,m.long.venue,m.short.venue,p.reason,p.strategy].join(' ').toLowerCase().includes(query))&&(!held||pairNumber(m.long.quantity)>0||pairNumber(m.short.quantity)>0);}).sort((a,b)=>{const diff=sortCol==='conviction'?(a.conviction||0)-(b.conviction||0):sortCol==='name'?a.name.localeCompare(b.name):0;return sortAsc?diff:-diff;});
-  const venueNames=new Set(farmingPairs.flatMap(p=>{const m=pairMetrics(p);return [m.long.venue,m.short.venue].filter(Boolean).map(x=>x.trim().toLowerCase());}));
+  const pairs=activeFarmingPairs().filter(p=>{const m=pairMetrics(p);return (!query||[p.name,p.ticker,m.long.venue,m.short.venue,p.reason,p.strategy].join(' ').toLowerCase().includes(query))&&(!held||pairNumber(m.long.quantity)>0||pairNumber(m.short.quantity)>0);}).sort((a,b)=>{const diff=sortCol==='conviction'?(a.conviction||0)-(b.conviction||0):sortCol==='name'?a.name.localeCompare(b.name):0;return sortAsc?diff:-diff;});
+  const venueNames=new Set(activeFarmingPairs().flatMap(p=>{const m=pairMetrics(p);return [m.long.venue,m.short.venue].filter(Boolean).map(x=>x.trim().toLowerCase());}));
   const legHTML=(leg,side)=>{const efficiency=pairEfficiency(leg);return `<div class="pair-leg"><div class="pair-leg-heading"><span class="${side==='long'?'up':'down'}">${side==='long'?'LONG':'SHORT'}</span><strong>${escapeHTML(leg.venue||'거래소 미연결')}</strong></div><div class="pair-leg-values"><span>수량 <b>${pairNumber(leg.quantity)??'—'}</b></span><span>마크 <b>${pairNumber(leg.mark)===null?'—':fP(Number(leg.mark))}</b></span><span>7일 포인트 <b>${pairNumber(leg.points7)??'—'}</b></span><span>7일 순비용 <b>${pairNumber(leg.cost7)===null?'—':money(Number(leg.cost7))}</b></span></div><small>${efficiency===null?'포인트당 비용 · 데이터 필요':`포인트당 비용 $${efficiency.toFixed(4)}`} · ${leg.asOf?escapeHTML(leg.asOf)+' 기준':'집계일 미입력'}</small><small>${leg.invalid?escapeHTML(leg.invalid):leg.manual?'계좌 미연결 · 수동 기록':escapeHTML(syncLabel(leg))}</small></div>`;};
-  document.getElementById('pair-board').innerHTML=`${renderVenueRoster()}<div class="pair-overview"><strong>${farmingPairs.length} 페어 <span>· ${venueNames.size}/${FARMING_VENUES.length} 거래소 설정</span></strong><p>동일 기초자산의 롱 + 숏 · 거래소별 포인트와 유지 비용을 함께 비교</p></div><div class="pair-sort"><button class="btn" onclick="sortBy('conviction')">Conviction ${sortCol==='conviction'?(sortAsc?'↑':'↓'):'↕'}</button></div><div class="pair-grid">${pairs.map(p=>{const m=pairMetrics(p);return `<article class="pair-card"><div class="pair-card-head"><div><h3>${escapeHTML(p.name)} <small>${escapeHTML(p.ticker||'마켓 미설정')}</small></h3><span class="pair-balance">${escapeHTML(m.status)}</span></div><button class="btn" data-pair-edit="${escapeHTML(p.id)}">페어 설정</button></div><div class="pair-legs">${legHTML(m.long,'long')}${legHTML(m.short,'short')}</div><div class="pair-net"><span>순수량 <b>${m.net===null?'—':Number(m.net.toPrecision(8))+' '+escapeHTML(p.ticker)}</b></span><span>총 명목가치 <b>${m.gross===null?'—':money(m.gross)}</b></span></div><p class="pair-strategy">${escapeHTML(p.strategy||'포인트 전략: 거래소별 적립 기준과 비용을 확인한 뒤 작성하세요.')}</p><p class="pair-thesis">${escapeHTML(p.reason||'Thesis 미작성')} <span>· Conviction ${p.conviction||'—'}/5</span></p></article>`;}).join('')||'<p class="form-help">조건에 맞는 페어가 없습니다.</p>'}</div><p class="form-help">선형 PERP의 기초자산 수량 기준입니다. 수량 균형은 청산·거래소·베이시스 위험을 없애지 않습니다. 포인트 단위는 거래소마다 달라 합산하거나 거래소 간 단순 순위를 매기지 않습니다.</p><button class="btn" onclick="openPosition('farming')">+ 개별 포지션 기록</button><p class="form-help">기존 개별 포지션은 아래에 보존되며, 페어 설정에서 연결할 수 있습니다.</p>`;
+  document.getElementById('pair-board').innerHTML=`${renderVenueRoster()}<div class="pair-overview"><strong>${activeFarmingPairs().length}/5 페어 <span>· ${venueNames.size}/${FARMING_VENUES.length} 거래소 설정</span></strong><p>동일 기초자산의 롱 + 숏 · 거래소별 포인트와 유지 비용을 함께 비교</p></div><div class="pair-sort"><button class="btn" onclick="sortBy('conviction')">Conviction ${sortCol==='conviction'?(sortAsc?'↑':'↓'):'↕'}</button></div><div class="pair-grid">${pairs.map(p=>{const m=pairMetrics(p);return `<article class="pair-card"><div class="pair-card-head"><div><h3>${escapeHTML(p.name)} <small>${escapeHTML(p.ticker||'마켓 미설정')}</small></h3><span class="pair-balance">${escapeHTML(m.status)}</span></div><div class="pair-card-actions"><button class="btn" data-pair-edit="${escapeHTML(p.id)}">종목·수량 설정</button><button class="btn" data-pair-swap="${escapeHTML(p.id)}">Long / Short 전환</button><button class="btn" data-pair-unlink="${escapeHTML(p.id)}">페어 해제</button></div></div><div class="pair-legs">${legHTML(m.long,'long')}${legHTML(m.short,'short')}</div><div class="pair-net"><span>순수량 <b>${m.net===null?'—':Number(m.net.toPrecision(8))+' '+escapeHTML(p.ticker)}</b></span><span>총 명목가치 <b>${m.gross===null?'—':money(m.gross)}</b></span></div><p class="pair-strategy">${escapeHTML(p.strategy||'포인트 전략: 거래소별 적립 기준과 비용을 확인한 뒤 작성하세요.')}</p><p class="pair-thesis">${escapeHTML(p.reason||'Thesis 미작성')} <span>· Conviction ${p.conviction||'—'}/5</span></p></article>`;}).join('')||'<p class="form-help">위에서 거래소 두 곳을 선택해 페어를 만드세요.</p>'}${Array.from({length:Math.max(0,5-activeFarmingPairs().length)},(_,i)=>`<div class="pair-empty-slot"><strong>페어 ${activeFarmingPairs().length+i+1}</strong><span>거래소 2개를 선택하면 여기에 연결됩니다.</span></div>`).join('')}</div><p class="form-help">선형 PERP의 기초자산 수량 기준입니다. 수량 균형은 청산·거래소·베이시스 위험을 없애지 않습니다. 포인트 단위는 거래소마다 달라 합산하거나 거래소 간 단순 순위를 매기지 않습니다.</p><button class="btn" onclick="openPosition('farming')">+ 개별 포지션 기록</button><p class="form-help">기존 개별 포지션은 아래에 보존되며, 페어 설정에서 연결할 수 있습니다.</p>${farmingPairs.some(p=>p.archived)?`<details class="pair-archive"><summary>해제한 페어 기록 ${farmingPairs.filter(p=>p.archived).length}개</summary>${farmingPairs.filter(p=>p.archived).map(p=>`<button class="btn" data-pair-edit="${escapeHTML(p.id)}">${escapeHTML(p.name)} · 기록 보기</button>`).join('')}</details>`:''}`;
   document.getElementById('book-title').textContent='DEX PERP · 델타 뉴트럴 페어';
-  document.getElementById('book-description').textContent=`${farmingPairs.length}페어 · ${FARMING_VENUES.length}거래소의 노출 균형과 포인트 효율 관리`;
-  document.getElementById('add-position').textContent='+ 페어 추가';
+  document.getElementById('book-description').textContent=`${activeFarmingPairs().length}/5페어 · ${FARMING_VENUES.length}거래소의 노출 균형과 포인트 효율 관리`;
+  document.getElementById('add-position').textContent='거래소 2개 선택';
 }
 const renderBeforePairs=renderTable;
 renderTable=function(){renderBeforePairs();const board=document.getElementById('pair-board');if(!board)return;board.hidden=currentTab!=='farming';if(currentTab==='farming')renderPairBoard();};
 const addBeforePairs=addCurrentPosition;
-addCurrentPosition=function(){if(currentTab==='farming')openFarmingPair();else addBeforePairs();};
-document.getElementById('pair-board').addEventListener('click',event=>{const button=event.target.closest('[data-pair-edit]');if(button)openFarmingPair(button.dataset.pairEdit);});
+addCurrentPosition=function(){if(currentTab==='farming'){selectedVenue=null;pairPickerMessage='심볼 두 개를 선택하세요.';renderPairBoard();document.getElementById('venue-picker')?.scrollIntoView({block:'center'});document.querySelector('[data-venue-pick]')?.focus();}else addBeforePairs();};
+document.getElementById('pair-board').addEventListener('click',event=>{
+  const b=event.target.closest('[data-venue-pick],[data-pair-edit],[data-pair-unlink],[data-pair-swap],[data-pair-cancel]');if(!b)return;
+  if(b.dataset.venuePick)selectFarmingVenue(b.dataset.venuePick);
+  else if(b.dataset.pairEdit)openFarmingPair(b.dataset.pairEdit);
+  else if(b.dataset.pairUnlink)unpairFarming(b.dataset.pairUnlink);
+  else if(b.dataset.pairSwap)swapFarmingSides(b.dataset.pairSwap);
+  else {selectedVenue=null;pairPickerMessage='';renderPairBoard();}
+});
 function openFarmingPair(id){
   initFarmingPairs();const pair=farmingPairs.find(p=>p.id===id)||{name:'페어 '+(farmingPairs.length+1),long:{},short:{}};
   const legFields=side=>{const leg=pair[side]||{};return `<fieldset class="pair-fieldset"><legend>${side==='long'?'LONG · 거래소 A':'SHORT · 거래소 B'}</legend>${selectField(side+'-positionId','기존 계좌 포지션 연결',[['','직접 기록 / 계좌 연결 전'],...farming.filter(p=>!p.closed).map(p=>[p.id,`${p.name} · ${p.ticker||''} · ${p.side}`])],leg.positionId||'')}${field(side+'-venue','거래소 이름',leg.venue,'text','maxlength="80"')}${field(side+'-quantity','수량 · 기초자산 단위',leg.quantity,'number','min="0" step="any"')}${field(side+'-mark','현재 마크 · USD',leg.mark,'number','min="0" step="any"')}${field(side+'-points7','최근 7일 획득 포인트',leg.points7,'number','min="0" step="any"')}${field(side+'-cost7','동일 7일 순비용 · USD',leg.cost7,'number','step="any" placeholder="수수료 + 슬리피지 + 지급 펀딩 − 수취 펀딩"')}${field(side+'-asOf','7일 집계 종료일',leg.asOf,'date')}${field(side+'-ruleUrl','공식 포인트 규칙 링크',leg.ruleUrl,'url','placeholder="https://…"')}</fieldset>`;};
@@ -107,10 +118,18 @@ function openFarmingPair(id){
   document.getElementById('delete-pair')?.addEventListener('click',()=>{if(confirm('페어 연결을 삭제할까요? 개별 포지션 기록은 유지됩니다.')){farmingPairs=farmingPairs.filter(p=>p.id!==id);if(save()){closeModal();renderAll();}}});
 }
 function validateFarmingPair(pair){
+  if(!pair.archived){
+    if(!activeFarmingPairs().some(p=>p.id===pair.id)&&activeFarmingPairs().length>=5)return '최대 5페어까지 만들 수 있습니다.';
+    for(const side of ['long','short']){
+      const key=venueKey(pairLeg(pair,side).venue);
+      if(key&&activeFarmingPairs().some(p=>p.id!==pair.id&&['long','short'].some(s=>venueKey(pairLeg(p,s).venue)===key)))return '이미 다른 페어에 연결된 거래소입니다.';
+    }
+  }
+
   for(const side of ['long','short']){
     const leg=pair[side],live=leg.positionId&&farming.find(p=>p.id===leg.positionId);
     if(leg.positionId&&(!live||live.closed||live.side!==side))return '연결할 포지션의 롱 / 숏 방향과 활성 상태를 확인하세요.';
-    if(leg.positionId&&farmingPairs.some(p=>p.id!==pair.id&&[p.long?.positionId,p.short?.positionId].includes(leg.positionId)))return '이 포지션은 이미 다른 페어에 연결되어 있습니다.';
+    if(leg.positionId&&farmingPairs.some(p=>!p.archived&&p.id!==pair.id&&[p.long?.positionId,p.short?.positionId].includes(leg.positionId)))return '이 포지션은 이미 다른 페어에 연결되어 있습니다.';
     if(leg.ruleUrl&&!/^https:\/\//i.test(leg.ruleUrl))return '공식 규칙 링크는 https 주소를 사용하세요.';
   }
   const a=pairLeg(pair,'long'),b=pairLeg(pair,'short');
