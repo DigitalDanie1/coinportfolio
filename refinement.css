@@ -723,3 +723,16 @@ button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
 .category-ranking-note{font-size:.7rem;color:var(--text-3);line-height:1.7;margin:14px 0}.compare-chart-heading{font-size:.88rem;margin-top:22px}
 @media(max-width:1279px){.category-movers-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.category-movers-grid{grid-template-columns:1fr}.category-ranking-controls .btn{font-size:.7rem;padding:7px 9px}}
+
+.multi-chart-workspace{margin-top:24px}.multi-chart-workspace>h3{font-size:.95rem;margin-bottom:12px}
+.multi-chart-tabs{display:flex;flex-wrap:wrap;gap:7px}
+.multi-chart-tabs [aria-pressed="true"]{background:var(--surface-3);border-color:var(--main);color:var(--text-1)}
+.multi-chart-card{background:var(--surface);border:1px solid var(--border-h);border-radius:12px;padding:16px;min-width:0}
+.multi-chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.multi-chart-head h4{font-size:.84rem}.multi-chart-head p{font-size:.67rem;color:var(--text-3);margin-top:5px}.multi-chart-head>div:last-child{display:flex;gap:5px}.multi-chart-head .btn{padding:6px 8px;min-height:30px;font-size:.66rem}
+.category-charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.multi-chart-card .sector-svg{margin:0}.multi-chart-card .sector-svg svg{display:block;width:100%;height:auto}
+.chart-ticker-legend{display:flex;flex-wrap:wrap;gap:5px;padding-top:12px;border-top:1px solid var(--border-h);margin-top:10px;max-height:180px;overflow:auto}
+.chart-ticker{font:inherit;font-size:.65rem;border:1px solid var(--border-h);border-radius:6px;background:var(--surface-2);color:var(--text-3);padding:6px 8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.chart-ticker.on{color:var(--text-1);border-color:var(--cc)}.chart-ticker .cc-dot{width:7px;height:7px;background:var(--cc);border-radius:50%;opacity:.35}.chart-ticker.on .cc-dot{opacity:1}.chart-ticker:disabled{opacity:.45;cursor:default}.chart-ticker span:last-child{font-variant-numeric:tabular-nums}.compare-empty-chart{padding:65px 15px;text-align:center;color:var(--text-3);font-size:.85rem}
+@media(max-width:1100px){.category-charts-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.multi-chart-card{padding:10px}.multi-chart-tabs .btn{font-size:.73rem;padding:8px 10px}.multi-chart-head{flex-wrap:wrap}.chart-ticker-legend{max-height:140px}}

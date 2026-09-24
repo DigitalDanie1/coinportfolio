@@ -13,10 +13,12 @@ const PALETTE=[
 
 let selected=new Set(),selectionInitialized=false;
 let rankingPeriod='7d',rankingOrder='desc';
+let chartView='all';
+const hiddenByScope=new Map();
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
-function getColor(idx){return PALETTE[idx % PALETTE.length];}
+function getColor(idx){return idx<PALETTE.length?PALETTE[idx]:`hsl(${Math.round(idx*137.508)%360} 65% 48%)`;}
 
 function gatherCoins(){
   const out=[];
@@ -42,12 +44,11 @@ function coinAction(c){return `comparePick(${esc(JSON.stringify(c.id))})`;}
 
 function downsample(arr,target){
   if(arr.length<=target) return arr;
-  const step=arr.length/target;
-  return Array.from({length:target},(_,i)=>arr[Math.round(i*step)]);
+  return Array.from({length:target},(_,i)=>arr[Math.round(i*(arr.length-1)/(target-1))]);
 }
 
-function svgChart(items){
-  const W=1200,H=480;
+function svgChart(items,compact=false){
+  const W=compact?720:1200,H=compact?360:480;
   const p={t:28,r:100,b:46,l:28};
   const pw=W-p.l-p.r,ph=H-p.t-p.b;
 
@@ -55,7 +56,7 @@ function svgChart(items){
   for(const c of items) for(const v of c.norm) vals.push(v);
   if(!vals.length) vals.push(0);
 
-  let yMin=Math.min(0,...vals),yMax=Math.max(0,...vals);
+  let yMin=0,yMax=0;for(const v of vals){yMin=Math.min(yMin,v);yMax=Math.max(yMax,v);}
   const span=(yMax-yMin)||1;
   yMin-=span*.08; yMax+=span*.08;
 
@@ -65,7 +66,7 @@ function svgChart(items){
   const tx=i=>p.l+(i/Math.max(maxLen-1,1))*pw;
   const ty=v=>p.t+((yMax-v)/(yMax-yMin))*ph;
 
-  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  let s=`<svg role="img" aria-label="다중 종목 가격 기록 비교 차트" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
 
   // grid
   const gn=8;
@@ -93,12 +94,14 @@ function svgChart(items){
     if(ds.length<2) return;
     const col=c._color;
     const pts=ds.map((v,i)=>`${tx(i*(maxLen-1)/(ds.length-1)).toFixed(1)},${ty(v).toFixed(1)}`);
-    s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".85"/>`;
+    s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${c.stale?'stroke-dasharray="6 4"':''}><title>${esc(c.ticker)} · ${esc(c.name)} · ${rate(c.last)}${c.stale?' · 지연 데이터':''}</title></polyline>`;
     const lx=tx(maxLen-1), ly=ty(ds[ds.length-1]);
     s+=`<circle cx="${lx}" cy="${ly}" r="3.5" fill="${col}"/>`;
     endPts.push({y:ly,x:lx,ticker:c.ticker,color:col,val:c.last});
   });
 
+  // Dense charts use the full legend rather than overlapping endpoint labels.
+  if(endPts.length>18)endPts.length=0;
   // end labels with collision avoidance
   endPts.sort((a,b)=>a.y-b.y);
   const minGap=13;
@@ -124,6 +127,24 @@ function svgChart(items){
   return s;
 }
 
+function chartCard(title,scope,pool,colorMap,compact=false){
+  const hidden=hiddenByScope.get(scope)||new Set();
+  const visible=c=>!c.noData&&(scope==='selected'?selected.has(c.id):!hidden.has(c.id));
+  const items=pool.filter(visible).map(c=>({...c,_color:colorMap[c.id]}));
+  const unavailable=pool.filter(c=>c.noData).length,stale=items.filter(c=>c.stale).length;
+  const action=(fn,...args)=>`${fn}(${args.map(v=>esc(JSON.stringify(v))).join(',')})`;
+  const legend=pool.map(c=>`<button type="button" class="chart-ticker${visible(c)?' on':''}" style="--cc:${colorMap[c.id]}" aria-pressed="${visible(c)}" ${c.noData?'disabled':''} onclick="${action('toggleScopedCompare',scope,c.id)}" title="${esc(c.name)} · ${esc(catLabelOf(c.cat))}${c.stale?' · 지연 데이터':''}"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span>${c.noData?'차트 없음':rate(c.last)+(c.stale?' · 지연':'')}</span></button>`).join('');
+  return `<section class="multi-chart-card" data-chart-scope="${esc(scope)}"><div class="multi-chart-head"><div><h4>${esc(title)}</h4><p>${items.length}/${pool.length}종목 표시${unavailable?' · 차트 미수신 '+unavailable:''}${stale?' · 지연 '+stale:''}</p></div><div><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,true)}">모두 보기</button><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,false)}">모두 숨김</button></div></div><div class="sector-svg">${items.length?svgChart(items,compact):'<div class="compare-empty-chart">비교할 종목을 선택하세요</div>'}</div><div class="chart-ticker-legend" aria-label="${esc(title)} 티커 표시 선택">${legend}</div></section>`;
+}
+function chartWorkspace(all,groups,colorMap){
+  const tabs=[['all','종합 · 전체 종목'],['selected','내가 선택한 종목'],['categories','카테고리별 차트']];
+  const nav=`<div class="multi-chart-tabs" role="group" aria-label="차트 보기 방식">${tabs.map(([key,label])=>`<button class="btn" aria-pressed="${chartView===key}" onclick="setCompareView('${key}')">${label}</button>`).join('')}</div>`;
+  let charts;
+  if(chartView==='categories')charts=`<div class="category-charts-grid">${groups.map(cat=>{const pool=all.filter(c=>c.cat===cat);return pool.length?chartCard(catLabelOf(cat),'cat:'+cat,pool,colorMap,true):'';}).join('')}</div>`;
+  else charts=chartCard(chartView==='all'?'종합 · 전체 종목':'내가 선택한 종목',chartView,all,colorMap);
+  return `<div class="multi-chart-workspace"><h3>다중 종목 차트</h3>${nav}<p class="category-ranking-note">각 수신 시계열의 첫 가격 = 0%. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다. 티커를 눌러 표시를 켜고 끄세요. 지연 데이터는 점선입니다.</p>${charts}</div>`;
+}
+
 function render(){
   const panel=document.getElementById('compare-panel');
   if(!panel) return;
@@ -136,20 +157,8 @@ function render(){
     for(let i=0;i<Math.min(5,ranked.length);i++) selected.add(ranked[i].id);
   }
 
-  // assign colors to selected coins (stable ordering)
-  let colorIdx=0;
-  const colorMap={};
-  for(const c of all){
-    if(selected.has(c.id)){
-      colorMap[c.id]=getColor(colorIdx);
-      colorIdx++;
-    }
-  }
-
-  const items=all.filter(c=>selected.has(c.id)&&!c.noData).map(c=>({...c,_color:colorMap[c.id]}));
-  items.sort((a,b)=>b.last-a.last);
-
-  const svg=items.length?svgChart(items):'<div style="padding:60px;text-align:center;color:var(--text-3);font-size:.85rem">비교할 종목을 선택하세요</div>';
+  // A ticker keeps the same color across overview, custom and category views.
+  const colorMap=Object.fromEntries(all.map((c,i)=>[c.id,getColor(i)]));
 
   // Ranking uses the provider's named interval, never a partial collected sparkline.
   const expanded=new Set([...panel.querySelectorAll('details[data-compare-category][open]')].map(el=>el.dataset.compareCategory));
@@ -177,10 +186,23 @@ function render(){
   const pending=all.filter(c=>c.noData).length;
   const actions=`<div class="compare-actions">${pending?`<button class="btn btn-sm" id="auto-dex-btn" onclick="autoConnectDex()">미연결 ${pending}개 자동 연결</button>`:''}<button class="btn btn-sm" onclick="compareSelectAll()">전체 선택</button><button class="btn btn-sm" onclick="compareClear()">초기화</button></div>`;
 
-  panel.innerHTML=`<div class="sector-head"><div><h3>카테고리별 상승 · 하락</h3><p>${rankingPeriod==='24h'?'최근 24시간':'최근 7일'} 변동률 · 내 목록에 있는 종목 기준</p></div>${actions}</div>${controls}${chips}<p class="category-ranking-note">미수신·지연 데이터는 순위에서 제외합니다. 주식의 24시간 수치는 전일 종가 대비입니다. 종목을 누르면 아래 비교 차트에 추가됩니다.</p><h4 class="compare-chart-heading">선택 종목 가격 기록 비교</h4><p class="category-ranking-note">각 수신 시계열의 첫 가격을 0%로 환산합니다. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다.</p><div class="sector-svg">${svg}</div>`;
+  panel.innerHTML=`<div class="sector-head"><div><h3>카테고리별 상승 · 하락</h3><p>${rankingPeriod==='24h'?'최근 24시간':'최근 7일'} 변동률 · 내 목록에 있는 종목 기준</p></div>${actions}</div>${controls}${chips}<p class="category-ranking-note">미수신·지연 데이터는 순위에서 제외합니다. 주식의 24시간 수치는 전일 종가 대비입니다. 종목을 누르면 아래 ‘내가 선택한 종목’ 차트에 추가됩니다.</p>${chartWorkspace(all,groupsInOrder,colorMap)}`;
 }
 
 window.renderCompareChart=render;
+window.setCompareView=function(view){if(['all','selected','categories'].includes(view)){chartView=view;render();}};
+window.toggleScopedCompare=function(scope,id){
+  if(scope==='selected'){window.toggleCompare(id);return;}
+  const hidden=hiddenByScope.get(scope)||new Set();
+  if(hidden.has(id))hidden.delete(id);else hidden.add(id);
+  hiddenByScope.set(scope,hidden);render();
+};
+window.setScopedCompare=function(scope,show){
+  const pool=gatherCoins().filter(c=>scope.startsWith('cat:')?c.cat===scope.slice(4):true);
+  if(scope==='selected'){selected=show?new Set(pool.filter(c=>!c.noData).map(c=>c.id)):new Set();selectionInitialized=true;}
+  else hiddenByScope.set(scope,show?new Set():new Set(pool.map(c=>c.id)));
+  render();
+};
 window.setCompareRanking=function(period,order){
   if(['24h','7d'].includes(period))rankingPeriod=period;
   if(['asc','desc'].includes(order))rankingOrder=order;
@@ -192,14 +214,17 @@ window.comparePick=function(id){
   window.toggleCompare(id);
 };
 window.toggleCompare=function(id){
+  chartView='selected';selectionInitialized=true;
   if(selected.has(id)) selected.delete(id); else selected.add(id);
   render();
 };
 window.compareSelectAll=function(){
+  chartView='selected';selectionInitialized=true;
   for(const c of gatherCoins()) if(!c.noData) selected.add(c.id);
   render();
 };
 window.compareClear=function(){
+  chartView='selected';selectionInitialized=true;
   selected.clear();
   render();
 };

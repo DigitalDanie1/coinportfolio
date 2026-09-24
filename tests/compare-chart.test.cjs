@@ -13,3 +13,17 @@ const ranked=cards()[0].split('compare-cat-ranked')[1];assert(ranked.indexOf('WI
 ctx.compareClear();assert(panel.innerHTML.includes('비교할 종목을 선택하세요'));
 ctx.coins[0].ticker='<script>bad</script>';ctx.renderCompareChart();assert(!panel.innerHTML.includes('<script>bad</script>'));
 console.log('PASS: per-category gain/loss leaders, named intervals, stale/missing exclusions, one-sided categories, sorting, clear selection and escaping.');
+ctx.setCompareView('all');assert(panel.innerHTML.includes('data-chart-scope="all"'));
+const lineCount=()=>[...panel.innerHTML.matchAll(/<polyline /g)].length;
+assert.equal(lineCount(),6);ctx.toggleScopedCompare('all','a');assert.equal(lineCount(),5);
+ctx.setCompareView('categories');assert.equal([...panel.innerHTML.matchAll(/data-chart-scope="cat:/g)].length,3);assert.equal(lineCount(),6);
+const scope=name=>panel.innerHTML.split(`data-chart-scope="${name}"`)[1].split('</section>')[0];
+assert.equal([...scope('cat:one').matchAll(/<polyline /g)].length,4);assert.equal([...scope('cat:two').matchAll(/<polyline /g)].length,1);
+ctx.toggleScopedCompare('cat:one','a');assert.equal([...scope('cat:one').matchAll(/<polyline /g)].length,3);assert.equal([...scope('cat:two').matchAll(/<polyline /g)].length,1);
+ctx.setScopedCompare('cat:one',true);assert.equal([...scope('cat:one').matchAll(/<polyline /g)].length,4);
+ctx.setCompareView('selected');assert.equal(lineCount(),0);ctx.toggleScopedCompare('selected','b');assert.equal(lineCount(),1);
+ctx.setCompareView('all');assert.equal(lineCount(),5);ctx.setCompareView('selected');assert.equal(lineCount(),1);
+ctx.setScopedCompare('selected',true);assert.equal(lineCount(),6);ctx.setScopedCompare('selected',false);assert.equal(lineCount(),0);
+ctx.mkt.a.sparkline_in_7d.price=Array.from({length:200},(_,i)=>i===199?100:1);ctx.setCompareView('all');ctx.setScopedCompare('all',true);assert(panel.innerHTML.includes('9900.0%'));
+assert(panel.innerHTML.includes('stroke-dasharray="6 4"'));assert(!panel.innerHTML.includes('NaN'));
+console.log('PASS: overview/custom/category multicharts, independent per-chart ticker controls, clear/restore, stale lines and full history endpoints.');
