@@ -663,3 +663,40 @@ button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
 .venue-chip.on[data-pair-color] .venue-mark{box-shadow:0 0 0 1px var(--pair-color)}
 .pair-card[data-pair-color]{border-top:3px solid var(--pair-color)}
 .pair-color-label{display:inline-block;color:var(--pair-color);background:var(--pair-tint);font-size:.68rem;font-weight:650;padding:4px 8px;border-radius:5px;margin-bottom:8px}
+
+/* Compact farming dashboard: five pairs fit in two rows on a wide display. */
+#pair-board .pair-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.pair-dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:12px 0;font-size:.9rem}
+.pair-dashboard-heading strong span{font-size:.75rem;font-weight:400;color:var(--text-3)}
+#pair-board .pair-card-compact{padding:14px;min-width:0}
+#pair-board .pair-card-compact .pair-card-head{flex-direction:row;align-items:center;gap:8px}
+.pair-card-compact .pair-card-head>div{min-width:0}
+.pair-card-compact h3{font-size:.84rem;overflow-wrap:anywhere}
+.pair-card-compact .pair-color-label{font-size:.62rem;margin-bottom:5px;padding:3px 6px}
+.pair-card-compact .btn{min-height:32px;padding:6px 9px;font-size:.7rem}
+.pair-compact-legs{display:grid;gap:8px;margin:12px 0}
+.pair-compact-leg{padding:9px 10px;border-radius:7px;background:var(--surface-2);min-width:0}
+.pair-compact-leg .pair-leg-heading{align-items:center;gap:8px;font-size:.72rem;flex-wrap:wrap}
+.pair-quantity{margin-left:auto;color:var(--text-3);font-size:.69rem}
+.pair-wallet-label{display:flex;gap:8px;align-items:center;margin-top:7px;font-size:.66rem;color:var(--text-3)}
+.pair-wallet-label>span{white-space:nowrap}
+.pair-wallet-label input{width:100%;min-width:0;min-height:30px;border:1px solid var(--border-h);border-radius:5px;padding:5px 8px;font:inherit;font-size:.72rem;background:var(--surface);color:var(--text-1)}
+.pair-wallet-label input::placeholder{color:var(--text-3)}
+.pair-compact-summary{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.68rem;color:var(--text-3)}
+.pair-compact-summary strong{color:var(--text-2);font-weight:500}
+.pair-wallet-status{display:block;color:var(--text-3);font-size:.62rem;margin-top:7px;min-height:14px}
+.pair-details{border-top:1px solid var(--border-h);margin-top:9px;padding-top:9px}
+.pair-details>summary{cursor:pointer;font-size:.68rem;color:var(--text-2);line-height:1.6}
+.pair-details>summary span{float:right;font-size:.62rem;color:var(--text-3)}
+.pair-card-compact .pair-legs{grid-template-columns:1fr;margin-top:10px;gap:8px}
+.pair-card-compact .pair-leg{padding:10px}
+.pair-card-compact .pair-leg-values{margin:10px 0;gap:8px}
+.pair-card-compact .pair-card-actions{margin-top:10px;justify-content:flex-start}
+#pair-board .pair-empty-slot{min-height:125px;align-items:flex-start;justify-content:center;flex-direction:column;gap:8px;padding:16px;font-size:.72rem}
+.pair-board-help{margin:16px 0;font-size:.73rem;color:var(--text-3)}
+.pair-board-help summary{cursor:pointer}.pair-board-help .form-help{margin:10px 0;line-height:1.7}
+#pair-board .venue-roster{padding:14px 16px;margin-bottom:12px}
+#pair-board .pair-picker-footer{font-size:.67rem;margin-top:8px}
+#pair-board .pair-picker-hint{font-size:.75rem;margin-bottom:10px}
+@media(max-width:1279px){#pair-board .pair-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#pair-board .pair-grid{grid-template-columns:1fr}.pair-dashboard-heading strong span{display:block;margin-top:4px}}
