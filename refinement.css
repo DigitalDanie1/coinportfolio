@@ -555,13 +555,39 @@ tbody tr:hover td{background:var(--row-hover)}
   .table-wrap table[data-book="spot"] td.number{white-space:normal;overflow-wrap:break-word;line-height:1.35}
 }
 @container (max-width: 800px){
-  .table-wrap table[data-book="spot"] th:nth-child(1){width:145px}
-  .table-wrap table[data-book="spot"] th:nth-child(3){width:125px!important}
-  .table-wrap table[data-book="spot"] th:nth-child(4){width:72px}
-  .table-wrap table[data-book="spot"] th:nth-child(6){width:105px}
-  .table-wrap table[data-book="spot"] th:nth-child(7){width:105px}
-  .table-wrap table[data-book="spot"] th:nth-child(8){width:75px}
-  .table-wrap table[data-book="spot"] th:nth-child(9){width:65px}
+  .table-wrap table[data-book="spot"] th:nth-child(1){width:150px}
+  .table-wrap table[data-book="spot"] th:nth-child(3){width:92px!important}
+  .table-wrap table[data-book="spot"] th:nth-child(4){width:65px}
+  .table-wrap table[data-book="spot"] th:nth-child(6){width:95px}
+  .table-wrap table[data-book="spot"] th:nth-child(7){width:140px}
+  .table-wrap table[data-book="spot"] th:nth-child(8){width:90px}
+  .table-wrap table[data-book="spot"] th:nth-child(9){width:68px}
+  /* The news button's own text+padding don't shrink below their intrinsic width by default
+     (same class of issue as the flex span above), so it was overflowing its column too. */
+  .table-wrap table[data-book="spot"] .news-button{width:100%;padding:6px 4px;font-size:.68rem}
+  /* Keep every row ~2 lines tall at this width: the price/holdings status text and the
+     name's source line stop wrapping and ellipsize to one line instead (full text on hover
+     via title=), and Conviction gets enough room that its label isn't cut mid-word. */
+  .table-wrap table[data-book="spot"] td.number{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+  /* A flex item's default min-width:auto refuses to shrink below its content's intrinsic
+     width, so the nowrap+ellipsis source line below was forcing this span (and the button,
+     and the whole column) to grow past the column instead of actually clipping. */
+  .table-wrap table[data-book="spot"] .asset-button > span{min-width:0}
+  .table-wrap table[data-book="spot"] .source-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  /* This hover-reveal hint text is wider than the column and was the real source of the
+     table's own scrollWidth exceeding the wrapper (it stays in normal flow, invisible via
+     opacity, but still lays out at full width). Not essential once the row is already this
+     compact and obviously clickable. */
+  .table-wrap table[data-book="spot"] .open-label{display:none}
+  .table-wrap table[data-book="spot"] .inline-conviction{font-size:.74rem;padding:6px 4px}
+  /* The thesis textarea collapses to a single line here (like a compact input) and only grows
+     back to its full multi-line size once focused, instead of squeezing a full box into ~140px
+     and forcing 4-5 wrapped placeholder lines that blow the row height back up. */
+  .table-wrap table[data-book="spot"] td.thesis-cell{height:auto}
+  .table-wrap table[data-book="spot"] .thesis-stack{height:auto}
+  .table-wrap table[data-book="spot"] .inline-thesis{flex:none;min-height:0;height:38px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;resize:none;padding:8px 10px}
+  .table-wrap table[data-book="spot"] .inline-thesis:focus{height:90px;white-space:pre-wrap;overflow:auto;text-overflow:clip;resize:vertical}
+  .table-wrap table[data-book="spot"] .thesis-stack .save-hint{font-size:.68rem}
 }
 @container (max-width: 420px){
   .table-wrap table[data-book="spot"]{width:100%;table-layout:auto}

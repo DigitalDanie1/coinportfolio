@@ -117,7 +117,10 @@ function renderTable() {
       const {coin:c, d, price, chg,mc,holdVal,h} = p;
       // Two lines per row: ticker+name, then a single muted line of category/source so more rows fit on screen.
       const subline = [c.note, typeof marketStatus === 'function' ? marketStatus(c) : ''].filter(Boolean).join(' · ');
-      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number">${price==null?escapeHTML(d?.message||'미연결'):fP(price)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number">${h?.qty?money(holdVal):'계좌 연결 필요'}</td>${journalCells(book,c.id,h)}</tr>`;
+      const priceText = price==null ? (d?.message||'미연결') : fP(price);
+      const holdText = h?.qty ? money(holdVal) : '계좌 연결 필요';
+      // title attributes keep the full text one hover away once narrow containers ellipsis these cells to one line.
+      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status" title="${escapeHTML(subline)}">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number" title="${escapeHTML(priceText)}">${escapeHTML(priceText)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number" title="${escapeHTML(holdText)}">${escapeHTML(holdText)}</td>${journalCells(book,c.id,h)}</tr>`;
     }
     const pnl = book==='options'?optionPnL(p):farmingPnL(p);
     const title = book==='options'?p.ticker:p.name;
