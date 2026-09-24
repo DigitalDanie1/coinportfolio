@@ -646,3 +646,20 @@ button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
 .pair-empty-slot strong{color:var(--text-2);white-space:nowrap}
 .pair-archive{margin:20px 0;font-size:.8rem}.pair-archive summary{cursor:pointer;margin-bottom:10px}.pair-archive .btn{margin:4px}
 @media(max-width:640px){.pair-card-head{align-items:flex-start;flex-direction:column}.pair-card-actions{justify-content:flex-start}.pair-empty-slot{align-items:flex-start;flex-direction:column;gap:8px}}
+
+/* One persistent accent per pair, shared by both venues and the pair card. */
+[data-pair-color="0"]{--pair-color:#2563eb;--pair-tint:#eff6ff}
+[data-pair-color="1"]{--pair-color:#7c3aed;--pair-tint:#f5f3ff}
+[data-pair-color="2"]{--pair-color:#b45309;--pair-tint:#fffbeb}
+[data-pair-color="3"]{--pair-color:#0f766e;--pair-tint:#f0fdfa}
+[data-pair-color="4"]{--pair-color:#be185d;--pair-tint:#fdf2f8}
+:root[data-theme="dark"] [data-pair-color="0"]{--pair-color:#93b4ff;--pair-tint:#17233d}
+:root[data-theme="dark"] [data-pair-color="1"]{--pair-color:#c4a1ff;--pair-tint:#2a1d3e}
+:root[data-theme="dark"] [data-pair-color="2"]{--pair-color:#f6c16b;--pair-tint:#332819}
+:root[data-theme="dark"] [data-pair-color="3"]{--pair-color:#6dd5c4;--pair-tint:#142e2b}
+:root[data-theme="dark"] [data-pair-color="4"]{--pair-color:#f4a1c8;--pair-tint:#351e2b}
+.venue-chip.on[data-pair-color],.venue-chip.on[data-pair-color]:hover{border-color:var(--pair-color);background:var(--pair-tint);color:var(--text-1)}
+.venue-chip.on[data-pair-color] small{color:var(--pair-color);font-weight:650}
+.venue-chip.on[data-pair-color] .venue-mark{box-shadow:0 0 0 1px var(--pair-color)}
+.pair-card[data-pair-color]{border-top:3px solid var(--pair-color)}
+.pair-color-label{display:inline-block;color:var(--pair-color);background:var(--pair-tint);font-size:.68rem;font-weight:650;padding:4px 8px;border-radius:5px;margin-bottom:8px}
