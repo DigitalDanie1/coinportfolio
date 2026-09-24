@@ -378,8 +378,12 @@ a.venue-chip:hover{border-color:var(--border-h);color:var(--text-1)}
 .pair-grid{display:grid;gap:16px}.pair-card{background:var(--surface);border:1px solid var(--border-h);border-radius:12px;padding:20px}.pair-card-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.pair-card h3{font-size:.95rem}.pair-card h3 small{color:var(--text-3);font-weight:400;margin-left:8px}.pair-balance{display:block;color:var(--text-3);font-size:.73rem;margin-top:6px}.pair-legs,.pair-form-legs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}.pair-leg{padding:16px;background:var(--surface-2);border-radius:8px;min-width:0}.pair-leg-heading{display:flex;gap:12px;font-size:.85rem}.pair-leg-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0;font-size:.74rem;color:var(--text-3)}.pair-leg-values b{display:block;color:var(--text-1);font-weight:500;font-variant-numeric:tabular-nums;margin-top:5px}.pair-leg small{display:block;color:var(--text-3);font-size:.69rem;margin-top:6px}.pair-net{display:flex;gap:24px;padding:14px 0;border-bottom:1px solid var(--border-h);font-size:.78rem;color:var(--text-2)}.pair-net b{margin-left:8px}.pair-strategy,.pair-thesis{font-size:.78rem;line-height:1.7;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.pair-thesis,.pair-thesis span{color:var(--text-3)}.pair-fieldset{border:1px solid var(--border-h);padding:16px;border-radius:8px;min-width:0}.pair-fieldset legend{font-size:.8rem;padding:0 8px}.modal:has(#pair-form){max-width:850px;width:850px}#pair-board>.form-help{margin:14px 0;line-height:1.8}@media(max-width:640px){.pair-legs,.pair-form-legs{grid-template-columns:1fr}.pair-card{padding:16px}.pair-net{flex-wrap:wrap;gap:10px}.pair-leg-heading{flex-wrap:wrap}}
 
 /* ── Toss-flavoured surfaces: rounded cards, soft edges, generous air ── */
-.table-wrap{border-radius:var(--rl);border:1px solid var(--border-h);background:var(--bg);box-shadow:var(--shadow-card);overflow:hidden}
-.table-wrap.scrolls{overflow-x:auto}
+/* overflow-x is the safety net: whatever the column rules below miss at a given container
+   width, a scrollbar reaches it. It must never be `hidden` — that was silently swallowing the
+   보유 가치/Thesis/Conviction/News columns whenever the table's min-width still exceeded the
+   wrapper (e.g. next to the persistent 232px sidebar, where the wrapper is far narrower than
+   the viewport). overflow-y stays hidden only to keep the rounded corners clipping the table. */
+.table-wrap{container-type:inline-size;border-radius:var(--rl);border:1px solid var(--border-h);background:var(--bg);box-shadow:var(--shadow-card);overflow-x:auto;overflow-y:hidden}
 th{border-bottom:1px solid var(--border-h)}
 tbody tr td{border-bottom:1px solid var(--border)}
 tbody tr:last-child td{border-bottom:0}
@@ -525,28 +529,41 @@ tbody tr:hover td{background:var(--row-hover)}
 .table-wrap table[data-book="spot"] td small.source-status{margin-top:3px}
 .table-wrap table[data-book="spot"] .market-chart{width:104px;height:34px;margin:0 0 2px}
 
-/* ── Responsive spot table: hide lower-priority columns before the row layout breaks down,
-   then switch to compact cards under ~640px instead of clipping or forcing page scroll. ── */
-@media(max-width:1000px){
+/* ── Responsive spot table: breakpoints key off the WRAPPER's own rendered width (container
+   queries), not the viewport. The persistent 232px sidebar means the wrapper is routinely
+   300-700px narrower than the viewport (e.g. 1024px viewport → a 743px wrapper, same as an
+   800px viewport, because above 1000px the fixed sidebar eats the difference) — a viewport
+   media query has no way to know that, a container query measures the real thing directly.
+   Columns drop progressively (market cap, then chart), then under ~420px of actual container
+   width the table becomes compact cards. overflow-x:auto above is the last-resort net for
+   whatever a given container width doesn't fully fit. ── */
+@container (max-width: 1250px){
   .table-wrap table[data-book="spot"] th:nth-child(5),
   .table-wrap table[data-book="spot"] td:nth-child(5){display:none}
-}
-@media(max-width:860px){
   .table-wrap table[data-book="spot"] th:nth-child(2),
   .table-wrap table[data-book="spot"] td:nth-child(2){display:none}
   .table-wrap table[data-book="spot"]{min-width:0}
-  .table-wrap table[data-book="spot"] th:nth-child(1){width:150px}
+  .table-wrap table[data-book="spot"] th:nth-child(1){width:160px}
   .table-wrap table[data-book="spot"] th:nth-child(3){width:130px!important}
-  .table-wrap table[data-book="spot"] th:nth-child(4){width:76px}
-  .table-wrap table[data-book="spot"] th:nth-child(6){width:110px}
-  .table-wrap table[data-book="spot"] th:nth-child(7){width:115px}
-  .table-wrap table[data-book="spot"] th:nth-child(8){width:80px}
-  .table-wrap table[data-book="spot"] th:nth-child(9){width:70px}
+  .table-wrap table[data-book="spot"] th:nth-child(4){width:80px}
+  .table-wrap table[data-book="spot"] th:nth-child(6){width:120px}
+  .table-wrap table[data-book="spot"] th:nth-child(7){width:170px}
+  .table-wrap table[data-book="spot"] th:nth-child(8){width:90px}
+  .table-wrap table[data-book="spot"] th:nth-child(9){width:75px}
   /* A resolved-but-unpriced asset's status message is prose, not a number; let it wrap inside
      its own column instead of overflowing into the next one at these narrower widths. */
   .table-wrap table[data-book="spot"] td.number{white-space:normal;overflow-wrap:break-word;line-height:1.35}
 }
-@media(max-width:640px){
+@container (max-width: 800px){
+  .table-wrap table[data-book="spot"] th:nth-child(1){width:145px}
+  .table-wrap table[data-book="spot"] th:nth-child(3){width:125px!important}
+  .table-wrap table[data-book="spot"] th:nth-child(4){width:72px}
+  .table-wrap table[data-book="spot"] th:nth-child(6){width:105px}
+  .table-wrap table[data-book="spot"] th:nth-child(7){width:105px}
+  .table-wrap table[data-book="spot"] th:nth-child(8){width:75px}
+  .table-wrap table[data-book="spot"] th:nth-child(9){width:65px}
+}
+@container (max-width: 420px){
   .table-wrap table[data-book="spot"]{width:100%;table-layout:auto}
   .table-wrap table[data-book="spot"] thead{display:none}
   .table-wrap table[data-book="spot"] tbody{display:block}
@@ -568,6 +585,8 @@ tbody tr:hover td{background:var(--row-hover)}
   .table-wrap table[data-book="spot"] tbody td:nth-child(2),
   .table-wrap table[data-book="spot"] tbody td:nth-child(5){display:none!important}
 }
+/* Browsers without container query support (very unlikely for this app's audience) fall back
+   to the safety-net horizontal scroll above rather than the responsive column changes. */
 
 /* ── Backup export/import inside the auto-connect modal. ── */
 .backup-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
