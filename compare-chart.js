@@ -11,7 +11,8 @@ const PALETTE=[
   '#d946ef','#4ade80','#fca5a5','#93c5fd','#fde047',
 ];
 
-let selected=new Set();
+let selected=new Set(),selectionInitialized=false;
+let rankingPeriod='7d',rankingOrder='desc';
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
@@ -21,17 +22,23 @@ function gatherCoins(){
   const out=[];
   for(const coin of coins){
     const d=coin.gecko?mkt[coin.gecko]:null;
-    const raw=priceSeries(d);
-    if(!raw||raw.length<10){
-      out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,norm:null,last:0,noData:true});
-      continue;
-    }
-    const base=raw[0]; if(!base||base<=0) continue;
-    const norm=raw.map(p=>((p-base)/base)*100);
-    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,norm,last:norm[norm.length-1]});
+    const raw=(priceSeries(d)||[]).filter(p=>Number.isFinite(p)&&p>0);
+    const norm=raw.length>=2?raw.map(p=>(p/raw[0]-1)*100):null;
+    const value=rankingPeriod==='24h'?d?.price_change_percentage_24h:d?.price_change_percentage_7d_in_currency;
+    const change=value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?Number(value):null;
+    const stale=!!d?.stale||!!(d?.updatedAt&&Date.now()-d.updatedAt>300000);
+    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,norm,last:norm?.at(-1)??0,noData:!norm,change,stale});
   }
   return out;
 }
+function rankedGroup(group){return [...group].sort((a,b)=>{
+  const av=a.change!==null&&!a.stale,bv=b.change!==null&&!b.stale;
+  if(av!==bv)return av?-1:1;
+  if(!av)return a.ticker.localeCompare(b.ticker);
+  return (rankingOrder==='desc'?b.change-a.change:a.change-b.change)||a.ticker.localeCompare(b.ticker);
+});}
+function rate(value){const n=Math.abs(value)<.05?0:value;return (n>0?'+':'')+n.toFixed(1)+'%';}
+function coinAction(c){return `comparePick(${esc(JSON.stringify(c.id))})`;}
 
 function downsample(arr,target){
   if(arr.length<=target) return arr;
@@ -73,12 +80,10 @@ function svgChart(items){
     const zy=ty(0);
     s+=`<line x1="${p.l}" y1="${zy}" x2="${W-p.r}" y2="${zy}" stroke="var(--grid-strong)" stroke-dasharray="5,4"/>`;
   }
-  // time axis
-  const now=new Date();
-  for(let d=6;d>=0;d--){
-    const dt=new Date(now-d*864e5);
-    const x=p.l+((6-d)/6)*pw;
-    s+=`<text x="${x}" y="${H-10}" fill="var(--text-3)" font-family="system-ui" font-size="12" text-anchor="middle">${dt.getMonth()+1}월 ${dt.getDate()}일</text>`;
+  // Relative progress only: providers return different history windows.
+  for(const [progress,label] of [[0,'기록 시작'],[.5,'기록 중간'],[1,'최근 수신']]){
+    const x=p.l+progress*pw;
+    s+=`<text x="${x}" y="${H-10}" fill="var(--text-3)" font-family="system-ui" font-size="12" text-anchor="middle">${label}</text>`;
   }
 
   // lines
@@ -125,8 +130,9 @@ function render(){
   const all=gatherCoins();
 
   // auto-init: if nothing selected, pick top 5 by absolute change
-  if(!selected.size){
-    const ranked=[...all].sort((a,b)=>Math.abs(b.last)-Math.abs(a.last));
+  if(!selectionInitialized){
+    selectionInitialized=true;
+    const ranked=all.filter(c=>!c.noData&&!c.stale).sort((a,b)=>Math.abs(b.change??0)-Math.abs(a.change??0));
     for(let i=0;i<Math.min(5,ranked.length);i++) selected.add(ranked[i].id);
   }
 
@@ -145,35 +151,46 @@ function render(){
 
   const svg=items.length?svgChart(items):'<div style="padding:60px;text-align:center;color:var(--text-3);font-size:.85rem">비교할 종목을 선택하세요</div>';
 
-  // coin picker chips grouped by category
+  // Ranking uses the provider's named interval, never a partial collected sparkline.
+  const expanded=new Set([...panel.querySelectorAll('details[data-compare-category][open]')].map(el=>el.dataset.compareCategory));
   const groupsInOrder=[...catList().map(c=>c.id),...new Set(all.map(c=>c.cat).filter(id=>!catList().some(x=>x.id===id)))];
-  let chips='<div class="compare-picker">';
+  const leader=(c,label,kind)=>c?`<button class="category-leader ${kind}" onclick="${coinAction(c)}" title="${esc(c.name)}" aria-pressed="${selected.has(c.id)}"><span>${label}</span><strong>${esc(c.ticker)}</strong><b>${rate(c.change)}</b></button>`:`<div class="category-leader empty"><span>${label}</span><strong>${kind==='gainer'?'상승 종목 없음':'하락 종목 없음'}</strong></div>`;
+  let chips='<div class="category-movers-grid">';
   for(const cat of groupsInOrder){
-    const group=all.filter(c=>c.cat===cat);
-    if(!group.length) continue;
-    chips+=`<div class="compare-cat-group"><span class="compare-cat-label">${esc(catLabelOf(cat))}</span>`;
-    for(const c of group){
-      if(c.noData){
-        chips+=`<button class="compare-coin no-data" onclick="if(typeof openEdit==='function')openEdit('${c.id}')" style="--cc:var(--text-3)"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span class="cc-chg" style="color:var(--text-3)">미연결</span></button>`;
-        continue;
-      }
-      const on=selected.has(c.id);
-      const col=on?colorMap[c.id]:'var(--text-3)';
-      const vs=(c.last>=0?'+':'')+c.last.toFixed(1)+'%';
-      chips+=`<button class="compare-coin${on?' on':''}" onclick="toggleCompare('${c.id}')" style="--cc:${col}"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span class="cc-chg ${c.last>=0?'up':'down'}">${vs}</span></button>`;
+    const group=all.filter(c=>c.cat===cat);if(!group.length)continue;
+    const valid=group.filter(c=>c.change!==null&&!c.stale);
+    const up=valid.filter(c=>c.change>0).sort((a,b)=>b.change-a.change);
+    const down=valid.filter(c=>c.change<0).sort((a,b)=>a.change-b.change);
+    const neutral=valid.length-up.length-down.length;
+    chips+=`<section class="category-movers"><div class="category-movers-head"><h4>${esc(catLabelOf(cat))}</h4><span>${valid.length}/${group.length}개 집계</span></div><div class="category-leaders">${leader(up[0],'최대 상승','gainer')}${leader(down[0],'최대 하락','loser')}</div><div class="category-breadth"><span class="up">상승 ${up.length}</span><span class="down">하락 ${down.length}</span><span>보합 ${neutral}</span>${group.length-valid.length?`<span>미수신·지연 ${group.length-valid.length}</span>`:''}</div><details data-compare-category="${esc(cat)}" ${expanded.has(cat)?'open':''}><summary>전체 ${group.length}개 · ${rankingOrder==='desc'?'상승률 높은 순':'하락률 큰 순'}</summary><div class="compare-cat-ranked">`;
+    for(const c of rankedGroup(group)){
+      const on=selected.has(c.id),col=on?colorMap[c.id]:'var(--text-3)';
+      const usable=c.change!==null&&!c.stale;
+      chips+=`<button class="compare-coin${on?' on':''}${usable?'':' no-data'}" onclick="${coinAction(c)}" title="${esc(c.name)}" aria-pressed="${on}" style="--cc:${col}"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span class="cc-chg ${usable?(c.change>0?'up':c.change<0?'down':''):''}">${c.change===null?'기간 데이터 없음':c.stale?'지연 · '+rate(c.change):rate(c.change)}</span></button>`;
     }
-    chips+='</div>';
+    chips+='</div></details></section>';
   }
   chips+='</div>';
+  const controls=`<div class="category-ranking-controls"><div role="group" aria-label="수익률 기준 기간"><button class="btn btn-sm" aria-pressed="${rankingPeriod==='24h'}" onclick="setCompareRanking('24h',null)">24시간</button><button class="btn btn-sm" aria-pressed="${rankingPeriod==='7d'}" onclick="setCompareRanking('7d',null)">7일</button></div><div role="group" aria-label="카테고리 내 정렬"><button class="btn btn-sm" aria-pressed="${rankingOrder==='desc'}" onclick="setCompareRanking(null,'desc')">상승률 높은 순 ↓</button><button class="btn btn-sm" aria-pressed="${rankingOrder==='asc'}" onclick="setCompareRanking(null,'asc')">하락률 큰 순 ↑</button></div></div>`;
 
   // quick actions
   const pending=all.filter(c=>c.noData).length;
   const actions=`<div class="compare-actions">${pending?`<button class="btn btn-sm" id="auto-dex-btn" onclick="autoConnectDex()">미연결 ${pending}개 자동 연결</button>`:''}<button class="btn btn-sm" onclick="compareSelectAll()">전체 선택</button><button class="btn btn-sm" onclick="compareClear()">초기화</button></div>`;
 
-  panel.innerHTML=`<div class="sector-head"><div><h3>COMPARE / INDIVIDUAL</h3><p>개별 종목을 선택해 누적 수익률을 비교하세요</p></div>${actions}</div>${chips}<div class="sector-svg">${svg}</div>`;
+  panel.innerHTML=`<div class="sector-head"><div><h3>카테고리별 상승 · 하락</h3><p>${rankingPeriod==='24h'?'최근 24시간':'최근 7일'} 변동률 · 내 목록에 있는 종목 기준</p></div>${actions}</div>${controls}${chips}<p class="category-ranking-note">미수신·지연 데이터는 순위에서 제외합니다. 주식의 24시간 수치는 전일 종가 대비입니다. 종목을 누르면 아래 비교 차트에 추가됩니다.</p><h4 class="compare-chart-heading">선택 종목 가격 기록 비교</h4><p class="category-ranking-note">각 수신 시계열의 첫 가격을 0%로 환산합니다. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다.</p><div class="sector-svg">${svg}</div>`;
 }
 
 window.renderCompareChart=render;
+window.setCompareRanking=function(period,order){
+  if(['24h','7d'].includes(period))rankingPeriod=period;
+  if(['asc','desc'].includes(order))rankingOrder=order;
+  render();
+};
+window.comparePick=function(id){
+  const coin=gatherCoins().find(c=>c.id===id);if(!coin)return;
+  if(coin.noData){if(typeof openDetail==='function')openDetail(id);return;}
+  window.toggleCompare(id);
+};
 window.toggleCompare=function(id){
   if(selected.has(id)) selected.delete(id); else selected.add(id);
   render();

@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const panel={innerHTML:'',querySelectorAll:()=>[]};
+const coins=[['a','WIN','one'],['b','LOSE','one'],['c','OLD','one'],['d','NONE','one'],['e','ONLYUP','two'],['f','ONLYDOWN','three']].map(([id,ticker,cat])=>({id,ticker,cat,name:ticker,gecko:id}));
+const quote=(d7,d24,stale=false)=>({price_change_percentage_7d_in_currency:d7,price_change_percentage_24h:d24,stale,sparkline_in_7d:{price:[1,2,3]}});
+const ctx=vm.createContext({coins,mkt:{a:quote(10,-2),b:quote(-20,30),c:quote(1000,1000,true),d:quote(null,null),e:quote(4,4),f:quote(-5,-5)},priceSeries:d=>d?.sparkline_in_7d?.price,catList:()=>['one','two','three'].map(id=>({id})),catLabelOf:c=>c,document:{getElementById:()=>panel}});ctx.window=ctx;
+vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../compare-chart.js'),'utf8'),ctx);
+ctx.renderCompareChart();
+const cards=()=>[...panel.innerHTML.matchAll(/<section class="category-movers">([\s\S]*?)<\/section>/g)].map(m=>m[1]);
+assert(cards()[0].includes('2/4개 집계'));assert(cards()[0].includes('<strong>WIN</strong><b>+10.0%'));assert(cards()[0].includes('<strong>LOSE</strong><b>-20.0%'));assert(cards()[1].includes('하락 종목 없음'));assert(cards()[2].includes('상승 종목 없음'));
+assert(cards()[0].indexOf('comparePick(&quot;a&quot;)')<cards()[0].lastIndexOf('comparePick(&quot;b&quot;)'));
+ctx.setCompareRanking('24h','asc');assert(cards()[0].includes('<strong>LOSE</strong><b>+30.0%'));assert(cards()[0].includes('<strong>WIN</strong><b>-2.0%'));assert(panel.innerHTML.includes('최근 24시간'));
+const ranked=cards()[0].split('compare-cat-ranked')[1];assert(ranked.indexOf('WIN')<ranked.indexOf('LOSE'));assert(ranked.indexOf('LOSE')<ranked.indexOf('OLD'));
+ctx.compareClear();assert(panel.innerHTML.includes('비교할 종목을 선택하세요'));
+ctx.coins[0].ticker='<script>bad</script>';ctx.renderCompareChart();assert(!panel.innerHTML.includes('<script>bad</script>'));
+console.log('PASS: per-category gain/loss leaders, named intervals, stale/missing exclusions, one-sided categories, sorting, clear selection and escaping.');
