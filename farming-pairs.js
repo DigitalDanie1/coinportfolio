@@ -1,5 +1,5 @@
 /* Pair records reference account legs; they do not duplicate or place orders. */
-// The nine pre-TGE venues being farmed. Aliases cover how each is typed into a pair leg.
+// The ten pre-TGE venues being farmed. Aliases cover how each is typed into a pair leg.
 const FARMING_VENUES=[
   {key:'risex',     name:'RiseX',       logo:'logos/risex.png',     site:'https://risex.exchange', aliases:['risex','rise x','rise']},
   {key:'truenorth', name:'Truenorth',   logo:'logos/truenorth.ico', site:'https://truenorth.xyz',  aliases:['truenorth','true north','tn']},
@@ -9,11 +9,15 @@ const FARMING_VENUES=[
   {key:'mnx',       name:'MNX',         logo:'logos/mnx.ico',       site:'https://mnx.fi',         aliases:['mnx']},
   {key:'pacifica',  name:'Pacifica',    logo:'logos/pacifica.png',  site:'https://pacifica.fi',    aliases:['pacifica','pacfica','pacficia']},
   {key:'qfex',      name:'QFEX',        logo:'logos/qfex.svg',      site:'https://qfex.com',       aliases:['qfex']},
-  {key:'quote',     name:'Quote',       logo:null,                  site:null,                     aliases:['quote']}
+  {key:'quote',     name:'Quote',       logo:null,                  site:null,                     aliases:['quote']},
+  {key:'n1',        name:'N1',          logo:'logos/n1.png',        site:'https://n1.xyz',         aliases:['n1','n 1','n1.xyz','01 exchange','01.xyz']}
 ];
 function venueUsage(){
   const typed=new Set(farmingPairs.flatMap(p=>{const m=pairMetrics(p);return [m.long.venue,m.short.venue];}).filter(Boolean).map(v=>v.trim().toLowerCase()));
-  return FARMING_VENUES.map(v=>({...v,active:[...typed].some(t=>v.aliases.some(a=>t===a||t.includes(a)))}));
+  // Short aliases (<=3 chars, e.g. 'n1', 'tn') risk false-matching via includes() on longer typed
+  // venue names, so require a whole-word match for those; longer aliases keep substring matching.
+  const matches=(t,a)=>a.length<=3?new RegExp(`(^|[^a-z0-9])${a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}($|[^a-z0-9])`).test(` ${t} `):t===a||t.includes(a);
+  return FARMING_VENUES.map(v=>({...v,active:[...typed].some(t=>v.aliases.some(a=>matches(t,a)))}));
 }
 function renderVenueRoster(){
   const venues=venueUsage(),done=venues.filter(v=>v.active).length;

@@ -16,4 +16,10 @@ run("delete farmingPairs[1].short.positionId;farming[0].closed=true");assert.equ
 run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
 run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),3,'an emptied book reseeds the planned pairs rather than staying empty');
 run("setTab('options')");assert.equal(el('pair-board').hidden,true);
-console.log('PASS: three pair defaults, hedge quantity/mark calculations, missing metrics, linked auto updates, direction/symbol/duplicate/closed validation, saved journals and intentional deletion.');
+assert.equal(run("FARMING_VENUES.length"),10,'N1 brings the roster to ten venues');
+run("farmingPairs[0].long.venue='N1'");
+assert.equal(run("venueUsage().find(v=>v.key==='n1').active"),true,'typing N1 activates the N1 venue');
+run("farmingPairs[0].long.venue='RiseN1X'");
+assert.equal(run("venueUsage().find(v=>v.key==='n1').active"),false,"a venue merely containing 'n1' must not false-match the short alias");
+run("farmingPairs[0].long.venue='A'");
+console.log('PASS: three pair defaults, hedge quantity/mark calculations, missing metrics, linked auto updates, direction/symbol/duplicate/closed validation, saved journals, intentional deletion, and N1 word-boundary alias matching.');
