@@ -117,10 +117,16 @@ function renderTable() {
       const {coin:c, d, price, chg,mc,holdVal,h} = p;
       // Two lines per row: ticker+name, then a single muted line of category/source so more rows fit on screen.
       const subline = [c.note, typeof marketStatus === 'function' ? marketStatus(c) : ''].filter(Boolean).join(' · ');
-      const priceText = price==null ? (d?.message||'미연결') : fP(price);
-      const holdText = h?.qty ? money(holdVal) : '계좌 연결 필요';
-      // title attributes keep the full text one hover away once narrow containers ellipsis these cells to one line.
-      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status" title="${escapeHTML(subline)}">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number" title="${escapeHTML(priceText)}">${escapeHTML(priceText)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number" title="${escapeHTML(holdText)}">${escapeHTML(holdText)}</td>${journalCells(book,c.id,h)}</tr>`;
+      // Price, 24H and holding value are the numbers a decision gets made on, so they must never
+      // truncate: the no-price case gets a short badge (full reason stays one hover away in title=)
+      // instead of the long provider message, and "no holdings" collapses to a plain dash rather
+      // than a sentence competing for the same column width.
+      const noPriceBadge = m => !m ? '미연결' : /상장 전/.test(m) ? '상장 전' : /유동성/.test(m) ? '유동성 부족' : '미제공';
+      const priceText = price==null ? noPriceBadge(d?.message) : fP(price);
+      const priceTitle = price==null ? (d?.message||'미연결') : priceText;
+      const holdText = h?.qty ? money(holdVal) : '—';
+      const holdTitle = h?.qty ? holdText : '계좌 연결 필요';
+      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status" title="${escapeHTML(subline)}">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number" title="${escapeHTML(priceTitle)}">${escapeHTML(priceText)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number" title="${escapeHTML(holdTitle)}">${escapeHTML(holdText)}</td>${journalCells(book,c.id,h)}</tr>`;
     }
     const pnl = book==='options'?optionPnL(p):farmingPnL(p);
     const title = book==='options'?p.ticker:p.name;
