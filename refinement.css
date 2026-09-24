@@ -145,6 +145,7 @@ tbody td:nth-child(5),tbody td:nth-child(5) .number{font-size:.9rem;font-weight:
 .save-hint{display:block;font-size:.72rem;font-weight:500;color:var(--text-3);margin-top:5px;min-height:1em}
 .inline-conviction{width:100%;min-height:39px;background:var(--surface-2);color:var(--text-1);border:1px solid var(--border-h);border-radius:8px;padding:7px;font:inherit;font-size:.76rem}
 .news-button{font-size:.72rem;padding:7px 10px;min-height:38px}
+.news-count-only{display:none}
 .book-summary:empty{display:none}
 .book-summary{display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--border-h);padding:16px 0 20px;font-size:.82rem;color:var(--text-2)}
 .book-summary strong{font-family:'JetBrains Mono',monospace;font-size:1.32rem;font-weight:680;color:var(--text-1)}
@@ -526,7 +527,7 @@ tbody tr:hover td{background:var(--row-hover)}
    (flex items shrink-to-fit their content by default) or the ticker's max-width:100% ends up
    measured against its own already-content-sized box instead of the real available space,
    which was ellipsizing a 4-letter ticker like "ZAMA" off of sub-pixel rounding alone. */
-.asset-button > span{flex:1;min-width:0}
+.asset-button > span:not(.asset-symbol){flex:1;min-width:0}
 .td-title{display:flex;width:100%;align-items:baseline;gap:6px;flex-wrap:wrap;min-width:0}
 .td-title strong{flex-shrink:0}
 .td-subname{flex:1;min-width:20px;font-size:.82rem;font-weight:500;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -560,22 +561,26 @@ tbody tr:hover td{background:var(--row-hover)}
   .table-wrap table[data-book="spot"] td.number{white-space:normal;overflow-wrap:break-word;line-height:1.35}
 }
 @container (max-width: 800px){
-  /* Price, 24H and holding value are what a decision gets made on, so they get a fixed
-     no-ellipsis budget generous enough for any real value (the JS side also keeps their text
-     itself short: a one-word no-price badge and a plain "—" instead of a sentence) and never
-     shrink below it. table{width:100%} + table-layout:fixed stretches every explicitly-sized
-     column proportionally to fill the wrapper when their sum is less than its width, which was
-     silently growing these three back past their intended size — so only Thesis is left
-     `width:auto`, and being the one auto column in a fixed layout it alone absorbs all of the
-     wrapper's remaining space instead of everyone growing together. */
-  .table-wrap table[data-book="spot"] th:nth-child(1){width:135px}
+  /* Price and 24H are what a decision gets made on, so they get a fixed no-ellipsis budget
+     sized for any real value and never shrink. table{width:100%} + table-layout:fixed stretches
+     every explicitly-sized column proportionally to fill the wrapper whenever their sum falls
+     short of it, which was silently growing these back past their intended size — so 종목 is
+     left `width:auto` and, being the one auto column in a fixed layout, it alone absorbs the
+     wrapper's remaining space (reclaimed from 보유 가치/Thesis/News below, which don't need it:
+     holdings is almost always "—" here, and News/Thesis compress to short previews). */
+  .table-wrap table[data-book="spot"] th:nth-child(1){width:auto}
   .table-wrap table[data-book="spot"] th:nth-child(3){width:112px!important}
   .table-wrap table[data-book="spot"] th:nth-child(4){width:78px}
-  .table-wrap table[data-book="spot"] th:nth-child(6){width:105px}
-  .table-wrap table[data-book="spot"] th:nth-child(7){width:auto}
+  .table-wrap table[data-book="spot"] th:nth-child(6){width:80px}
+  .table-wrap table[data-book="spot"] th:nth-child(7){width:120px}
   .table-wrap table[data-book="spot"] th:nth-child(8){width:88px}
-  .table-wrap table[data-book="spot"] th:nth-child(9){width:46px}
+  .table-wrap table[data-book="spot"] th:nth-child(9){width:56px}
   .table-wrap table[data-book="spot"] td.number{white-space:nowrap;font-variant-numeric:tabular-nums;line-height:1.4}
+  /* Holdings isn't on the hard-protected list (its content is "—" for almost every row at this
+     width), but a real holding's money value still shouldn't bleed into Thesis if it's ever
+     wider than 80px — it gets its own graceful ellipsis + the title= already carries the full
+     figure, instead of the guaranteed-width treatment price/24H get. */
+  .table-wrap table[data-book="spot"] td:nth-child(6){overflow:hidden;text-overflow:ellipsis}
   .table-wrap table[data-book="spot"] .source-status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
   /* This hover-reveal hint text is wider than the column and was a real source of the table's
      own scrollWidth exceeding the wrapper (it stays in normal flow, invisible via opacity, but
@@ -583,9 +588,11 @@ tbody tr:hover td{background:var(--row-hover)}
      obviously clickable. */
   .table-wrap table[data-book="spot"] .open-label{display:none}
   .table-wrap table[data-book="spot"] .inline-conviction{font-size:.7rem;padding:6px 2px}
-  /* News shrinks to just its own button, letter-spacing tightened so "뉴스 · N" still reads
-     rather than getting cut. */
-  .table-wrap table[data-book="spot"] .news-button{width:100%;padding:6px 2px;font-size:.64rem;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis}
+  /* News shrinks to just the article count (title= carries "뉴스 · N" in full) instead of a
+     label that couldn't fit its column at any reasonable width. */
+  .table-wrap table[data-book="spot"] .news-button{width:100%;padding:6px 2px;font-size:.78rem;text-align:center}
+  .table-wrap table[data-book="spot"] .news-full{display:none}
+  .table-wrap table[data-book="spot"] .news-count-only{display:inline}
   /* Thesis is the one column allowed to compromise: it collapses to a single-line ~38px preview
      (ellipsized, not a number, so this is fine to clip) and only grows back to a normal
      multi-line textarea once focused, instead of squeezing a full box into a narrow column and

@@ -29,6 +29,11 @@ function newsBadge(book,id){
   const data=newsByAsset[assetKey(book,id)];
   return data?.articles?.length?`뉴스 ${data.articles.length}`:data?.error?'뉴스 재시도':data?.updatedAt?'뉴스 없음':'뉴스 연결 중';
 }
+// A number-only version for the narrow News column, where the full "뉴스 · N" label doesn't fit.
+function newsCountBadge(book,id){
+  const data=newsByAsset[assetKey(book,id)];
+  return data?.articles?.length!=null?String(data.articles.length):data?.error?'!':data?.updatedAt?'0':'…';
+}
 function marketStatus(coin){return syncLabel(marketByCoin[coin.id]);}
 function positionAutoInfo(book,p){
   if(p.source==='hyperliquid')return syncLabel({source:'Hyperliquid 계좌',updatedAt:p.updatedAt,stale:p.stale});
