@@ -77,7 +77,7 @@ function signalStrip(book, id) {
 }
 function journalCells(book,id,item) {
   const attrs = `data-book="${book}" data-id="${escapeHTML(id)}"`;
-  return `<td class="thesis-cell"><div class="thesis-stack">${signalStrip(book,id)}<textarea class="inline-thesis" aria-label="Thesis" placeholder="투자 논리, 촉매, 무효화 조건…" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></div></td>
+  return `<td class="thesis-cell"><div class="thesis-stack">${signalStrip(book,id)}<textarea class="inline-thesis" aria-label="Thesis" placeholder="• 논리&#10;• 촉매&#10;• 무효화" ${attrs} data-journal="reason">${escapeHTML(item?.reason||'')}</textarea><span class="save-hint" aria-live="polite">입력 시 자동 저장</span></div></td>
     <td><select class="inline-conviction" aria-label="Conviction level" ${attrs} data-journal="conviction">${convictionOptions(item?.conviction)}</select></td>
     <td>${(()=>{const full=`뉴스${typeof newsBadge==='function'?' · '+newsBadge(book,id).replace(/^뉴스 ?/,''):item?.newsNote?' · 메모':''}`;const count=typeof newsCountBadge==='function'?newsCountBadge(book,id):'';return `<button class="btn news-button" ${attrs} data-action="news" title="${escapeHTML(full)}"><span class="news-full">${escapeHTML(full)}</span><span class="news-count-only">${escapeHTML(count)}</span></button>`;})()}</td>`;
 }
@@ -141,6 +141,38 @@ function renderTable() {
   summary.innerHTML = `<span>표시된 포지션 ${valued.length}/${rows.length}개 손익 계산</span><strong class="${total>=0?'up':'down'}">${valued.length?signedMoney(total):'현재 값 미입력'}</strong><span>${book==='options'?'자동 현재가 기준 평가손익 · 만기 정산은 계좌 연결 필요':'연결 계좌는 거래소 미실현 손익 · 기존 수동 기록은 누적 순손익'}</span>`;
 }
 let tableRenderPending = false;
+/* Thesis entries are kept as bullets: an empty field lays out the three headings, and every new
+   line continues the list so the structure survives without the user maintaining it. */
+const THESIS_BULLET = '• ';
+const THESIS_TEMPLATE = ['논리', '촉매', '무효화'].map(h => THESIS_BULLET + h + ' · ').join('\n');
+document.getElementById('tbody').addEventListener('focusin', e => {
+  const input = e.target;
+  if (input.dataset.journal !== 'reason' || input.value.trim()) return;
+  input.value = THESIS_TEMPLATE;
+  const caret = THESIS_TEMPLATE.indexOf('\n');
+  input.setSelectionRange(caret, caret);
+});
+document.getElementById('tbody').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.dataset.journal !== 'reason' || e.isComposing) return;
+  const input = e.target, at = input.selectionStart;
+  const line = input.value.slice(0, at).split('\n').pop();
+  if (!line.startsWith(THESIS_BULLET)) return;
+  e.preventDefault();
+  // A line still holding only its bullet and heading ends the list instead of repeating.
+  const written = line.replace(/^•\s*/, '').replace(/^(논리|촉매|무효화)\s*·?\s*/, '').trim();
+  const insert = written ? '\n' + THESIS_BULLET : '\n';
+  input.setRangeText(insert, at, input.selectionEnd, 'end');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
+document.getElementById('tbody').addEventListener('focusout', e => {
+  const input = e.target;
+  if (input.dataset?.journal !== 'reason') return;
+  // Leaving the template untouched must not persist as if something was written.
+  const emptied = input.value.split('\n').every(l => !l.replace(/^•\s*/, '').replace(/[·\s]/g, '').replace(/논리|촉매|무효화/g, ''));
+  if (!emptied || !input.value.trim()) return;
+  input.value = '';
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
 document.getElementById('tbody').addEventListener('input', e => {
   const input = e.target;
   if (!input.dataset.journal) return;
