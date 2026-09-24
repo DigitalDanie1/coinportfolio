@@ -14,6 +14,8 @@ assert.equal(run('activeFarmingPairs().length'),5);assert.equal(run('venueUsage(
 run("farmingPairs[0].reason='Preserved';swapFarmingSides(farmingPairs[0].id)");assert.equal(run('farmingPairs[0].long.venue'),'Truenorth');
 run('unpairFarming(farmingPairs[0].id)');assert.equal(run('activeFarmingPairs().length'),4);assert.equal(run('farmingPairs[0].reason'),'Preserved');assert.equal(run('farmingPairs[0].archived'),true);
 run("selectFarmingVenue('risex');selectFarmingVenue('truenorth');save();load();initFarmingPairs()");assert.equal(run('activeFarmingPairs().length'),5);assert.equal(run('farmingPairs.length'),6);
+run("selectFarmingVenue('titanx');selectFarmingVenue('derpetual');initFarmingPairs()");assert.equal(run('activeFarmingPairs().length'),6);assert.equal(run('venueUsage().filter(v=>v.active).length'),12);assert.equal(run('activeFarmingPairs().at(-1).colorSlot'),5);
+assert(run('renderVenueRoster()').includes('6/6'));assert.equal(run('MAX_FARMING_PAIRS'),6);
 run("farmingPairs=[{id:'p1',long:{},short:{}},{id:'p2',long:{},short:{}}]");
 
 run("farmingPairs[0]={id:'pair-1',name:'Pair',ticker:'BTC',long:{venue:'A',quantity:2,mark:100,points7:10,cost7:2},short:{venue:'B',quantity:2,mark:101},reason:'Keep thesis',conviction:5}");
@@ -27,7 +29,7 @@ run("delete farmingPairs[1].short.positionId;farming[0].closed=true");assert.equ
 run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
 run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),0,'unpaired books stay empty');
 run("setTab('options')");assert.equal(el('pair-board').hidden,true);
-assert.equal(run("FARMING_VENUES.length"),10,'N1 brings the roster to ten venues');
+assert.equal(run("FARMING_VENUES.length"),12,'TitanX and Derpetual bring the roster to twelve venues');
 run("farmingPairs=[{long:{venue:'N1'},short:{}}]");
 assert.equal(run("venueUsage().find(v=>v.key==='n1').active"),true,'typing N1 activates the N1 venue');
 run("farmingPairs[0].long.venue='RiseN1X'");
