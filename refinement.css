@@ -790,17 +790,37 @@ td>.row-cat{box-shadow:inset 9px 0 0 -5px var(--cc)}
 #workspace-scenario .scenario-legacy textarea{min-height:140px}
 @media(max-width:950px){#scenario-framework{grid-template-columns:1fr}.scenario-step{padding:15px}}
 
-/* Size of the move, read as weight: a +99% chip must not look like a +2% one. */
+/* Two separate readings on one chip, so they must not share a channel: whether it is SELECTED is
+   carried by fill and opacity, how far it MOVED by the accent colour. The move tint only lands on
+   a chip that is on — otherwise a big riser looked selected while sitting unselected. */
 .chart-ticker-return{font-weight:680;font-variant-numeric:tabular-nums}
-.chart-ticker.move-up-1{border-color:color-mix(in srgb,var(--green) 40%,var(--border-h))}
-.chart-ticker.move-up-2{border-color:color-mix(in srgb,var(--green) 70%,transparent);background:color-mix(in srgb,var(--green) 9%,var(--surface-2))}
-.chart-ticker.move-up-3{border-color:var(--green);background:color-mix(in srgb,var(--green) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--green)}
-.chart-ticker.move-down-1{border-color:color-mix(in srgb,var(--red) 40%,var(--border-h))}
-.chart-ticker.move-down-2{border-color:color-mix(in srgb,var(--red) 70%,transparent);background:color-mix(in srgb,var(--red) 9%,var(--surface-2))}
-.chart-ticker.move-down-3{border-color:var(--red);background:color-mix(in srgb,var(--red) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--red)}
+.chart-ticker{position:relative;padding-left:26px!important;opacity:.55;background:transparent;border-style:dashed}
+.chart-ticker::before{content:"";position:absolute;left:9px;top:50%;width:11px;height:11px;margin-top:-6px;
+  border:1.5px solid var(--text-3);border-radius:3px;background:transparent}
+.chart-ticker:hover{opacity:.85}
+.chart-ticker.on{opacity:1;border-style:solid;background:var(--surface-2)}
+.chart-ticker.on::before{border-color:var(--main);background:var(--main)}
+.chart-ticker.on::after{content:"";position:absolute;left:12.5px;top:50%;width:3px;height:6px;margin-top:-4px;
+  border:solid var(--main-ink);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.chart-ticker[disabled]{opacity:.32;border-style:dotted}
+.chart-ticker[disabled]::before{border-style:dotted}
+.chart-ticker.on.move-up-1{border-color:color-mix(in srgb,var(--green) 40%,var(--border-h))}
+.chart-ticker.on.move-up-2{border-color:color-mix(in srgb,var(--green) 70%,transparent);background:color-mix(in srgb,var(--green) 9%,var(--surface-2))}
+.chart-ticker.on.move-up-3{border-color:var(--green);background:color-mix(in srgb,var(--green) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--green)}
+.chart-ticker.on.move-down-1{border-color:color-mix(in srgb,var(--red) 40%,var(--border-h))}
+.chart-ticker.on.move-down-2{border-color:color-mix(in srgb,var(--red) 70%,transparent);background:color-mix(in srgb,var(--red) 9%,var(--surface-2))}
+.chart-ticker.on.move-down-3{border-color:var(--red);background:color-mix(in srgb,var(--red) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--red)}
 .chart-ticker[class*="move-up"] .chart-ticker-return{color:var(--green)}
 .chart-ticker[class*="move-down"] .chart-ticker-return{color:var(--red)}
-.chart-ticker[class*="move-up-3"] strong,.chart-ticker[class*="move-down-3"] strong{font-weight:750}
+.chart-ticker.on[class*="move-up-3"] strong,.chart-ticker.on[class*="move-down-3"] strong{font-weight:750}
 .move-flag{font-size:.6rem;letter-spacing:-1px;margin-left:2px}
 .chart-ticker[class*="move-up"] .move-flag{color:var(--green)}
 .chart-ticker[class*="move-down"] .move-flag{color:var(--red)}
+/* Category heading doubles as the select-all for its group. */
+.chart-category-heading{display:flex;align-items:center;gap:7px;width:100%;background:none;border:0;font:inherit;
+  color:inherit;cursor:pointer;padding:4px 2px;text-align:left;border-radius:6px}
+.chart-category-heading:hover{background:var(--surface-2)}
+.chart-category-heading em{margin-left:auto;font-style:normal;font-size:.68rem;font-weight:600;color:var(--text-3);opacity:0}
+.chart-category-heading:hover em,.chart-category-heading:focus-visible em{opacity:1}
+body.dragging-chips{user-select:none}
+body.dragging-chips .chart-ticker{cursor:crosshair}
