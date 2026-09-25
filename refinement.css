@@ -774,8 +774,16 @@ td>.row-cat{box-shadow:inset 9px 0 0 -5px var(--cc)}
 /* Category and RSI sit together under the name — the one column never hidden at any width. */
 .row-meta{display:flex;align-items:center;gap:8px;margin-top:7px;flex-wrap:wrap}
 .row-meta .row-cat{margin-top:0}
-.rsi-tag{font-size:.7rem;font-weight:600;color:var(--text-3);white-space:nowrap}
-.rsi-tag .rsi{font-size:.8rem;margin-left:3px}
+/* RSI reads as a badge carrying its own zone, not grey text trailing the category. */
+.rsi-tag{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-size:.67rem;font-weight:700;
+  letter-spacing:.02em;color:var(--text-3);background:var(--surface-2);border:1px solid var(--border-h);
+  border-radius:999px;padding:3px 9px 3px 7px;min-height:26px}
+.rsi-tag .rsi{font-size:.88rem;font-weight:750;letter-spacing:-.02em;margin:0}
+.rsi-tag:has(.rsi.hot){color:var(--red);border-color:color-mix(in srgb,var(--red) 55%,transparent);
+  background:color-mix(in srgb,var(--red) var(--signal-tint),var(--bg))}
+.rsi-tag:has(.rsi.cold){color:var(--green);border-color:color-mix(in srgb,var(--green) 55%,transparent);
+  background:color-mix(in srgb,var(--green) var(--signal-tint),var(--bg))}
+.rsi-tag:has(.rsi.none){opacity:.6}
 
 .scenario-workflow{margin:18px 0;padding:14px 16px;background:var(--surface-2);border-radius:9px;font-size:.8rem;line-height:1.8;color:var(--text-2)}
 .scenario-workflow strong{display:block;color:var(--text-1)}.scenario-workflow p{font-size:.73rem;color:var(--text-3);margin-top:4px}
@@ -830,3 +838,4 @@ td>.row-cat{box-shadow:inset 9px 0 0 -5px var(--cc)}
   border:solid var(--main);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
 body.dragging-chips{user-select:none}
 body.dragging-chips .chart-ticker{cursor:crosshair}
+.rsi-zone{font-size:.64rem;font-weight:700;margin-left:4px}

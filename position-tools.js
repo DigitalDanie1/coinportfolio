@@ -53,7 +53,8 @@ function rsiCell(coin) {
   if (v == null) return '<span class="rsi none" title="RSI는 시세 15개부터 계산됩니다">—</span>';
   const zone = rsiZone(v);
   const label = zone === 'hot' ? '과매수' : zone === 'cold' ? '과매도' : '중립';
-  return `<span class="rsi ${zone}" title="RSI(14) · 1시간봉 · ${label}">${v.toFixed(0)}</span>`;
+  const mark = zone === 'hot' ? ' 과열' : zone === 'cold' ? ' 침체' : '';
+  return `<span class="rsi ${zone}" title="RSI(14) · 1시간봉 · ${label}">${v.toFixed(0)}</span>${mark ? `<span class="rsi-zone">${mark.trim()}</span>` : ''}`;
 }
 function categoryPicker(coin) {
   return `<select class="row-cat" aria-label="${escapeHTML(coin.ticker)} 분류" data-cat-for="${escapeHTML(coin.id)}" style="--cc:${escapeHTML(catColorOf(coin.cat))}">${
