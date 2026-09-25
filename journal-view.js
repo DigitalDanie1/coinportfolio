@@ -1,13 +1,15 @@
 function initScenario(){
   document.getElementById('market-scenario').value=scenario.text;
+  renderScenarioFramework();
+  const legacy=document.getElementById('scenario-legacy');if(legacy)legacy.open=!!scenario.text;
   updateScenarioStatus(false);
 }
 function updateScenarioStatus(saved){
-  document.getElementById('scenario-count').textContent=Array.from(scenario.text).length.toLocaleString()+'자';
+  document.getElementById('scenario-count').textContent=Array.from([scenario.text,...Object.values(scenario.fields||{})].join('')).length.toLocaleString()+'자';
   document.getElementById('scenario-status').textContent=scenario.updatedAt?`${saved?'저장됨 · ':''}${new Date(scenario.updatedAt).toLocaleString()}`:'직접 작성 · 자동 저장';
 }
 function saveScenario(text){
-  scenario={text,updatedAt:new Date().toISOString()};
+  scenario={...scenario,text,updatedAt:new Date().toISOString()};
   const ok=save();
   updateScenarioStatus(true);
   if(!ok)document.getElementById('scenario-status').textContent='저장 실패 · 작성 내용을 복사해 보관하세요';
@@ -220,4 +222,34 @@ function setWorkspaceView(view){
   }else updateWorkspaceNavigation(view);
   // Switch the visible surface without replacing inputs or disturbing saved drafts.
   window.scrollTo({top:0,behavior:'instant'});
+}
+
+// Structured scenario fields coexist with the original text and are never sent to quote APIs.
+const SCENARIO_SECTIONS=[
+  {title:'① 지금의 판단',help:'무엇을, 언제까지, 어떤 방향으로 보는지 한 문장으로 정하세요.',fields:[
+    ['scope','대상 · 관찰 기간','예: BTC와 프라이버시 섹터 / 다음 주 점검까지'],
+    ['view','내 핵심 판단','[자산·섹터]는 [이유] 때문에 [예상 방향]으로 움직일 것으로 본다.']]},
+  {title:'② 판단의 근거',help:'관찰한 사실과 나의 해석을 분리하세요. 근거 옆에 날짜나 출처를 붙이면 복기가 쉬워집니다.',fields:[
+    ['evidence','확인한 사실 → 내 해석','사실: [지표·가격·뉴스 / 확인 날짜·출처]\n해석: [이 사실이 내 판단을 지지하는 이유]\n반대 근거: [내 생각과 맞지 않는 관찰]']]},
+  {title:'③ 세 가지 예상 경로',help:'목표 가격만 적기보다, 어떤 조건이 먼저 발생하고 다음에 무엇이 이어질지 적으세요.',fields:[
+    ['base','기본 시나리오 · 가장 가능성이 높다고 보는 경로','[조건 A] 유지 → [첫 움직임] → [후속 움직임 / 목표 구간]'],
+    ['bull','강세 시나리오 · 예상보다 강해질 조건','[어떤 변화]가 확인되면 → [예상 경로]로 수정'],
+    ['bear','약세 시나리오 · 예상보다 약해질 조건','[어떤 변화]가 확인되면 → [예상 경로]로 수정']]},
+  {title:'④ 내가 할 행동',help:'자산마다 한 줄씩 쓰세요. 조건이 충족되지 않을 때의 행동도 적습니다.',fields:[
+    ['execution','자산별 조건부 실행 계획','[자산] | [확인할 조건] | [진입·유지·축소·대기] | [수량 또는 비중 한도] | [목표·정리 조건]\n조건 미충족 시: [대기 / 재점검]']]},
+  {title:'⑤ 틀렸다고 인정할 기준',help:'사전에 정한 무효화 조건과 대응을 함께 적으세요. 매매 후 이유를 바꾸지 않도록 남기는 항목입니다.',fields:[
+    ['invalidation','무효화 조건 → 대응','[가격·지표·이벤트]가 [구체적 기준]을 충족하면 내 판단을 재검토한다.\n확인 방식: [종가 / 공시 / 특정 시각의 데이터 등]\n대응: [축소·종료·대기] / 감수할 손실 한도: [직접 정할 값]']]},
+  {title:'⑥ 점검과 복기',help:'작성할 때 점검일을 정하고, 그날 실제 결과를 채우세요. 수익 여부와 판단의 질을 따로 돌아봅니다.',fields:[
+    ['reviewDate','다음 점검일','','date'],
+    ['review','점검 후 작성 · 예상과 실제','실제 일어난 일: [관찰]\n맞거나 틀린 가정: [이유]\n실행 계획을 지켰는가: [행동]\n다음에 유지·수정할 원칙: [한 가지]']]}
+];
+function renderScenarioFramework(){
+  const host=document.getElementById('scenario-framework');if(!host)return;
+  host.innerHTML=SCENARIO_SECTIONS.map(section=>`<section class="scenario-step"><h3>${section.title}</h3><p>${section.help}</p>${section.fields.map(([key,label,placeholder,type])=>`<div class="scenario-prompt"><label for="scenario-field-${key}">${label}</label>${type==='date'?`<input type="date" id="scenario-field-${key}" value="${escapeHTML(scenario.fields?.[key]||'')}" onchange="saveScenarioField('${key}',this.value)">`:`<textarea id="scenario-field-${key}" rows="${['scope','view'].includes(key)?2:4}" placeholder="${escapeHTML(placeholder)}" oninput="saveScenarioField('${key}',this.value)">${escapeHTML(scenario.fields?.[key]||'')}</textarea>`}</div>`).join('')}</section>`).join('');
+}
+function saveScenarioField(key,value){
+  if(!SCENARIO_SECTIONS.some(section=>section.fields.some(field=>field[0]===key)))return;
+  scenario={...scenario,fields:{...scenario.fields,[key]:value},updatedAt:new Date().toISOString()};
+  const ok=save();updateScenarioStatus(true);
+  if(!ok)document.getElementById('scenario-status').textContent='저장 실패 · 작성 내용을 복사해 보관하세요';
 }

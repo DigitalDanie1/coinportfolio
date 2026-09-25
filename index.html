@@ -253,15 +253,10 @@ tr{animation:fadeIn .25s ease both}
     </aside>
   </section>
   <section id="workspace-scenario" hidden class="scenario-panel" aria-labelledby="scenario-heading">
-    <div class="scenario-header"><div><h2 id="scenario-heading">나의 시장 시나리오</h2><p>예상 흐름, 자산별 목표, 조정 구간과 뷰를 바꿀 조건을 기록하세요.</p></div><span id="scenario-status" role="status">직접 작성 · 자동 저장</span></div>
-    <label class="sr-only" for="market-scenario">나의 시장 시나리오</label>
-    <textarea id="market-scenario" rows="7" placeholder="기본 시나리오: 시장이 어떤 순서로 움직일 것인가
-
-자산별 목표와 예상 조정 구간:
-
-다음 상승의 조건:
-
-이 뷰를 바꿀 조건:" oninput="saveScenario(this.value)"></textarea>
+    <div class="scenario-header"><div><h2 id="scenario-heading">나의 시장 시나리오</h2><p>판단과 행동을 연결하는 투자 노트 · 위에서 아래로 작성하세요.</p></div><span id="scenario-status" role="status">직접 작성 · 자동 저장</span></div>
+    <div class="scenario-workflow"><strong>작성 순서</strong><span>①~③ 시장을 해석 → ④~⑤ 행동 조건을 정함 → ⑥ 결과를 복기</span><p>처음에는 각 칸에 한두 문장만 적으세요. 다음 점검 때 가정과 실제 결과를 비교합니다.</p></div>
+    <div id="scenario-framework"></div>
+    <details class="scenario-legacy" id="scenario-legacy"><summary>기존 기록 · 자유 메모</summary><p>이전에 작성한 원문입니다. 필요한 내용을 위 양식으로 옮기거나 자유롭게 이어 쓰세요.</p><label class="sr-only" for="market-scenario">기존 시나리오와 자유 메모</label><textarea id="market-scenario" rows="5" placeholder="양식 밖에서 남기고 싶은 생각이나 기존 메모" oninput="saveScenario(this.value)"></textarea></details>
     <div class="scenario-footer"><span>자동 데이터 갱신이 이 내용을 변경하지 않습니다.</span><span id="scenario-count">0자</span></div>
   </section>
   <details id="workspace-principles" hidden class="reflection-panel" open>
