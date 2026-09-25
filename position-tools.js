@@ -25,6 +25,41 @@ function signedMoney(value) { return value == null ? '미입력' : (value >= 0 ?
 function convictionOptions(value) {
   return [[0,'미지정'],[1,'1 · 매우 낮음'],[2,'2 · 낮음'],[3,'3 · 보통'],[4,'4 · 높음'],[5,'5 · 매우 높음']].map(([v,label]) => `<option value="${v}" ${Number(value||0)===v?'selected':''}>${label}</option>`).join('');
 }
+/* Wilder's RSI over the hourly closes already loaded for the sparkline. */
+function rsi(prices, period = 14) {
+  if (!Array.isArray(prices) || prices.length < period + 1) return null;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = prices[i] - prices[i - 1];
+    if (d >= 0) gain += d; else loss -= d;
+  }
+  gain /= period; loss /= period;
+  for (let i = period + 1; i < prices.length; i++) {
+    const d = prices[i] - prices[i - 1];
+    gain = (gain * (period - 1) + (d > 0 ? d : 0)) / period;
+    loss = (loss * (period - 1) + (d < 0 ? -d : 0)) / period;
+  }
+  if (loss === 0) return gain === 0 ? 50 : 100;
+  const value = 100 - 100 / (1 + gain / loss);
+  return Number.isFinite(value) ? value : null;
+}
+function coinRSI(coin) {
+  const d = coin && (coin.gecko ? mkt[coin.gecko] : null);
+  return d ? rsi(priceSeries(d)) : null;
+}
+function rsiZone(v) { return v >= 70 ? 'hot' : v <= 30 ? 'cold' : 'mid'; }
+function rsiCell(coin) {
+  const v = coinRSI(coin);
+  if (v == null) return '<span class="rsi none" title="RSI는 시세 15개부터 계산됩니다">—</span>';
+  const zone = rsiZone(v);
+  const label = zone === 'hot' ? '과매수' : zone === 'cold' ? '과매도' : '중립';
+  return `<span class="rsi ${zone}" title="RSI(14) · 1시간봉 · ${label}">${v.toFixed(0)}</span>`;
+}
+function categoryPicker(coin) {
+  return `<select class="row-cat" aria-label="${escapeHTML(coin.ticker)} 분류" data-cat-for="${escapeHTML(coin.id)}" style="--cc:${escapeHTML(catColorOf(coin.cat))}">${
+    catList().map(c => `<option value="${escapeHTML(c.id)}" ${c.id === coin.cat ? 'selected' : ''}>${escapeHTML(c.label)}</option>`).join('')
+  }</select>`;
+}
 /* Signals read off the data already on hand; anything not measurable is simply not shown. */
 function marketSignals(coin) {
   const d = coin && (coin.gecko ? mkt[coin.gecko] : null);
@@ -66,6 +101,9 @@ function marketSignals(coin) {
   }
   if (d.liquidity > 0 && vol > 0 && vol / d.liquidity >= 3)
     out.push({ key: 'churn', label: '유동성 대비 과열', tone: 'hot' });
+  const r = rsi(prices);
+  if (r != null && r >= 70) out.push({ key: 'rsi', label: `RSI ${r.toFixed(0)} 과매수`, tone: 'down' });
+  else if (r != null && r <= 30) out.push({ key: 'rsi', label: `RSI ${r.toFixed(0)} 과매도`, tone: 'up' });
   return out.slice(0, 3);
 }
 function signalStrip(book, id) {
@@ -126,7 +164,7 @@ function renderTable() {
       const priceTitle = price==null ? (d?.message||'미연결') : priceText;
       const holdText = h?.qty ? money(holdVal) : '—';
       const holdTitle = h?.qty ? holdText : '계좌 연결 필요';
-      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status" title="${escapeHTML(subline)}">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number" title="${escapeHTML(priceTitle)}">${escapeHTML(priceText)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number" title="${escapeHTML(holdTitle)}">${escapeHTML(holdText)}</td>${journalCells(book,c.id,h)}</tr>`;
+      return `<tr><td><button class="asset-button" data-action="detail" data-book="spot" data-id="${escapeHTML(c.id)}">${marketLogo(c,d)}<span><span class="td-title"><strong>${escapeHTML(c.ticker)}</strong><span class="td-subname">${escapeHTML(c.name)}</span></span><small class="source-status" title="${escapeHTML(subline)}">${escapeHTML(subline)}</small><span class="open-label">보유 · 메모 열기 ↗</span></span></button><span class="row-meta">${categoryPicker(c)}<span class="rsi-tag" title="RSI(14) · 1시간봉">RSI ${rsiCell(c)}</span></span></td><td class="market-chart-cell">${marketChart(c,d)}</td><td class="number" title="${escapeHTML(priceTitle)}">${escapeHTML(priceText)}</td><td class="number ${pCls(chg)}">${fPct(chg)}</td><td class="number">${mc==null?'—':fM(mc)}</td><td class="number" title="${escapeHTML(holdTitle)}">${escapeHTML(holdText)}</td>${journalCells(book,c.id,h)}</tr>`;
     }
     const pnl = book==='options'?optionPnL(p):farmingPnL(p);
     const title = book==='options'?p.ticker:p.name;
@@ -172,6 +210,12 @@ document.getElementById('tbody').addEventListener('focusout', e => {
   if (!emptied || !input.value.trim()) return;
   input.value = '';
   input.dispatchEvent(new Event('input', { bubbles: true }));
+});
+document.getElementById('tbody').addEventListener('change', e => {
+  const pick = e.target.closest('[data-cat-for]');
+  if (!pick) return;
+  updateCoin(pick.dataset.catFor, { cat: pick.value });
+  renderAll();
 });
 document.getElementById('tbody').addEventListener('input', e => {
   const input = e.target;
