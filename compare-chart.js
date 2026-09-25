@@ -17,6 +17,11 @@ function moveBand(pct){
   const tier=m>=50?'3':m>=20?'2':m>=5?'1':'0';
   return ` move-${pct>=0?'up':'down'}-${tier}`;
 }
+// Conviction is recorded per holding; grouping by it answers whether the picks rated highest
+// are the ones actually running.
+const CONVICTION_TIERS=[[5,'5 · 매우 높음'],[4,'4 · 높음'],[3,'3 · 보통'],[2,'2 · 낮음'],[1,'1 · 매우 낮음'],[0,'미지정']];
+function convictionOf(id){return Number(holdings?.[id]?.conviction)||0;}
+function convictionLabel(level){return (CONVICTION_TIERS.find(([v])=>v===level)||CONVICTION_TIERS[5])[1];}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function getColor(idx){return idx<PALETTE.length?PALETTE[idx]:`hsl(${Math.round(idx*137.508)%360} 65% 48%)`;}
@@ -162,10 +167,22 @@ function chartCard(title,scope,pool,colorMap,compact=false){
   return `<section class="multi-chart-card" data-chart-scope="${esc(scope)}"><div class="multi-chart-head"><div><h4>${esc(title)}</h4><p>${items.length}/${pool.length}종목 표시${unavailable?' · 차트 미수신 '+unavailable:''}${stale?' · 지연 '+stale:''}</p></div><div><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,true)}">모두 보기</button><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,false)}">모두 숨김</button></div></div><div class="chart-category-key" aria-label="카테고리 색상">${key}</div><div class="sector-svg">${items.length?svgChart(items,compact):'<div class="compare-empty-chart">비교할 종목을 선택하세요</div>'}</div><div class="chart-ticker-legend" aria-label="${esc(title)} 티커 표시 선택">${legend}</div></section>`;
 }
 function chartWorkspace(all,groups,colorMap){
-  const tabs=[['all','종합 · 전체 종목'],['selected','내가 선택한 종목'],['categories','카테고리별 차트']];
+  const tabs=[['all','종합 · 전체 종목'],['selected','내가 선택한 종목'],['categories','카테고리별 차트'],['conviction','컨빅션별 차트']];
   const nav=`<div class="multi-chart-tabs" role="group" aria-label="차트 보기 방식">${tabs.map(([key,label])=>`<button class="btn" aria-pressed="${chartView===key}" onclick="setCompareView('${key}')">${label}</button>`).join('')}</div>`;
   let charts;
-  if(chartView==='categories')charts=`<div class="category-charts-grid">${groups.map(cat=>{const pool=all.filter(c=>c.cat===cat);return pool.length?chartCard(catLabelOf(cat),'cat:'+cat,pool,colorMap,true):'';}).join('')}</div>`;
+  if(chartView==='conviction'){
+    const tiers=CONVICTION_TIERS.filter(([lvl])=>all.some(c=>convictionOf(c.id)===lvl));
+    charts=tiers.length
+      ? `<div class="category-charts-grid">${tiers.map(([lvl,label])=>{
+          const pool=all.filter(c=>convictionOf(c.id)===lvl);
+          const rated=pool.filter(c=>!c.noData);
+          const avg=rated.length?rated.reduce((n,c)=>n+c.last,0)/rated.length:null;
+          const trend=avg==null?'':` · 평균 ${avg>=0?'+':''}${avg.toFixed(1)}%`;
+          return chartCard(label+trend,'conv:'+lvl,pool,colorMap,true);
+        }).join('')}</div>`
+      : '<p class="category-ranking-note">Conviction을 입력한 종목이 아직 없습니다.</p>';
+  }
+  else if(chartView==='categories')charts=`<div class="category-charts-grid">${groups.map(cat=>{const pool=all.filter(c=>c.cat===cat);return pool.length?chartCard(catLabelOf(cat),'cat:'+cat,pool,colorMap,true):'';}).join('')}</div>`;
   else charts=chartCard(chartView==='all'?'종합 · 전체 종목':'내가 선택한 종목',chartView,all,colorMap);
   return `<div class="multi-chart-workspace"><h3>다중 종목 차트</h3>${nav}<p class="category-ranking-note">각 수신 시계열의 첫 가격 = 0%. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다. 색은 카테고리, 로고·이름은 종목을 나타냅니다. 티커에 마우스를 올리면 해당 선이 강조되고, 누르면 표시를 켜고 끕니다. 지연 데이터는 점선입니다.</p>${charts}</div>`;
 }
@@ -225,7 +242,7 @@ window.highlightCompareTicker=function(button,id){
   }
 };
 window.renderCompareChart=render;
-window.setCompareView=function(view){if(['all','selected','categories'].includes(view)){chartView=view;render();}};
+window.setCompareView=function(view){if(['all','selected','categories','conviction'].includes(view)){chartView=view;render();}};
 window.toggleScopedCompare=function(scope,id){
   if(scope==='selected'){window.toggleCompare(id);return;}
   const hidden=hiddenByScope.get(scope)||new Set();
@@ -233,7 +250,7 @@ window.toggleScopedCompare=function(scope,id){
   hiddenByScope.set(scope,hidden);render();
 };
 window.setScopedCompare=function(scope,show){
-  const pool=gatherCoins().filter(c=>scope.startsWith('cat:')?c.cat===scope.slice(4):true);
+  const pool=gatherCoins().filter(c=>scope.startsWith('cat:')?c.cat===scope.slice(4):scope.startsWith('conv:')?convictionOf(c.id)===Number(scope.slice(5)):true);
   if(scope==='selected'){selected=show?new Set(pool.filter(c=>!c.noData).map(c=>c.id)):new Set();selectionInitialized=true;}
   else hiddenByScope.set(scope,show?new Set():new Set(pool.map(c=>c.id)));
   render();
