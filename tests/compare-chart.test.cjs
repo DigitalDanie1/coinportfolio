@@ -27,3 +27,12 @@ ctx.setScopedCompare('selected',true);assert.equal(lineCount(),6);ctx.setScopedC
 ctx.mkt.a.sparkline_in_7d.price=Array.from({length:200},(_,i)=>i===199?100:1);ctx.setCompareView('all');ctx.setScopedCompare('all',true);assert(panel.innerHTML.includes('9900.0%'));
 assert(panel.innerHTML.includes('stroke-dasharray="6 4"'));assert(!panel.innerHTML.includes('NaN'));
 console.log('PASS: overview/custom/category multicharts, independent per-chart ticker controls, clear/restore, stale lines and full history endpoints.');
+ctx.URL=URL;ctx.mkt.a.image='https://example.com/win.png';ctx.mkt.b.image='javascript:alert(1)';
+ctx.catList=()=>[{id:'one',color:'#2563eb'},{id:'two',color:'#9333ea'},{id:'three',color:'#0d9488'}];
+ctx.setCompareView('all');ctx.setScopedCompare('all',true);
+const color=id=>panel.innerHTML.match(new RegExp('data-series-id="'+id+'"><polyline[^>]*stroke="([^"]+)"'))?.[1];
+assert.equal(color('a'),'#2563eb');assert.equal(color('a'),color('b'));assert.equal(color('e'),'#9333ea');assert.notEqual(color('a'),color('e'));
+assert(panel.innerHTML.includes('<image href="https://example.com/win.png"'));assert(panel.innerHTML.includes('<img src="https://example.com/win.png"'));assert(!panel.innerHTML.includes('javascript:alert(1)'));assert(panel.innerHTML.includes('chart-ticker-identity'));assert(panel.innerHTML.includes('chart-category-key'));
+const marks=['a','b'].map(id=>({dataset:{seriesId:id},style:{},classList:{toggle(k,v){this[k]=v}}}));
+const button={closest:()=>({querySelectorAll:()=>marks})};ctx.highlightCompareTicker(button,'a');assert.equal(marks[0].style.opacity,'1');assert.equal(marks[1].style.opacity,'.12');ctx.highlightCompareTicker(button,null);assert.equal(marks[1].style.opacity,'');
+console.log('PASS: shared category colors, distinct categories, safe logo rendering, identity labels and focused ticker highlighting.');

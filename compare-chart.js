@@ -2,14 +2,7 @@
 (function(){
 'use strict';
 
-const PALETTE=[
-  '#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e',
-  '#ef4444','#f59e0b','#06b6d4','#ec4899','#84cc16',
-  '#14b8a6','#f97316','#8b5cf6','#10b981','#e879f9',
-  '#facc15','#38bdf8','#fb923c','#a3e635','#2dd4bf',
-  '#818cf8','#fbbf24','#34d399','#f472b6','#67e8f9',
-  '#d946ef','#4ade80','#fca5a5','#93c5fd','#fde047',
-];
+const PALETTE=['#2563eb','#9333ea','#0d9488','#ea580c','#db2777','#64748b','#ca8a04','#0891b2'];
 
 let selected=new Set(),selectionInitialized=false;
 let rankingPeriod='7d',rankingOrder='desc';
@@ -20,6 +13,16 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 
 function getColor(idx){return idx<PALETTE.length?PALETTE[idx]:`hsl(${Math.round(idx*137.508)%360} 65% 48%)`;}
 
+function categoryColor(cat){
+  const groups=catList(),idx=groups.findIndex(c=>c.id===cat);
+  const configured=groups[idx]?.color;
+  if(/^#[0-9a-f]{6}$/i.test(configured||''))return configured;
+  if(idx>=0)return getColor(idx);
+  let hash=0;for(const char of String(cat))hash=(hash*31+char.charCodeAt(0))>>>0;
+  return getColor(hash%PALETTE.length);
+}
+function logoURL(value){try{const url=new URL(value);return url.protocol==='https:'?url.href:null;}catch{return null;}}
+function tickerLogo(c){return `<span class="compare-ticker-logo"><span>${esc(c.ticker.slice(0,2))}</span>${c.image?`<img src="${esc(c.image)}" alt="" width="24" height="24" loading="lazy" onerror="this.remove()">`:''}</span>`;}
 function gatherCoins(){
   const out=[];
   for(const coin of coins){
@@ -29,7 +32,7 @@ function gatherCoins(){
     const value=rankingPeriod==='24h'?d?.price_change_percentage_24h:d?.price_change_percentage_7d_in_currency;
     const change=value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?Number(value):null;
     const stale=!!d?.stale||!!(d?.updatedAt&&Date.now()-d.updatedAt>300000);
-    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,norm,last:norm?.at(-1)??0,noData:!norm,change,stale});
+    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,image:logoURL(d?.image),norm,last:norm?.at(-1)??0,noData:!norm,change,stale});
   }
   return out;
 }
@@ -49,7 +52,7 @@ function downsample(arr,target){
 
 function svgChart(items,compact=false){
   const W=compact?720:1200,H=compact?360:480;
-  const p={t:28,r:100,b:46,l:28};
+  const p={t:28,r:compact?150:185,b:46,l:65};
   const pw=W-p.l-p.r,ph=H-p.t-p.b;
 
   const vals=[];
@@ -74,7 +77,7 @@ function svgChart(items,compact=false){
     const y=p.t+(i/gn)*ph;
     const v=yMax-(i/gn)*(yMax-yMin);
     s+=`<line x1="${p.l}" y1="${y}" x2="${W-p.r}" y2="${y}" stroke="var(--grid)"/>`;
-    s+=`<text x="${W-p.r+6}" y="${y+4}" fill="var(--text-3)" font-family="'JetBrains Mono',monospace" font-size="10">${v>=0?'+':''}${v.toFixed(1)}%</text>`;
+    s+=`<text x="${p.l-9}" text-anchor="end" y="${y+4}" fill="var(--text-3)" font-family="'JetBrains Mono',monospace" font-size="10">${v>=0?'+':''}${v.toFixed(1)}%</text>`;
   }
   // zero line
   if(yMin<0&&yMax>0){
@@ -94,17 +97,17 @@ function svgChart(items,compact=false){
     if(ds.length<2) return;
     const col=c._color;
     const pts=ds.map((v,i)=>`${tx(i*(maxLen-1)/(ds.length-1)).toFixed(1)},${ty(v).toFixed(1)}`);
-    s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${c.stale?'stroke-dasharray="6 4"':''}><title>${esc(c.ticker)} · ${esc(c.name)} · ${rate(c.last)}${c.stale?' · 지연 데이터':''}</title></polyline>`;
+    s+=`<g class="compare-series" data-series-id="${esc(c.id)}"><polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".85" ${c.stale?'stroke-dasharray="6 4"':''}><title>${esc(c.ticker)} · ${esc(c.name)} · ${rate(c.last)}${c.stale?' · 지연 데이터':''}</title></polyline>`;
     const lx=tx(maxLen-1), ly=ty(ds[ds.length-1]);
-    s+=`<circle cx="${lx}" cy="${ly}" r="3.5" fill="${col}"/>`;
-    endPts.push({y:ly,x:lx,ticker:c.ticker,color:col,val:c.last});
+    s+=`<circle cx="${lx}" cy="${ly}" r="3.5" fill="${col}"/></g>`;
+    endPts.push({y:ly,actualY:ly,x:lx,ticker:c.ticker,name:c.name,image:c.image,id:c.id,color:col,val:c.last});
   });
 
   // Dense charts use the full legend rather than overlapping endpoint labels.
-  if(endPts.length>18)endPts.length=0;
+  const dense=endPts.length>Math.floor(ph/24);
   // end labels with collision avoidance
   endPts.sort((a,b)=>a.y-b.y);
-  const minGap=13;
+  const minGap=dense?0:24;
   for(let i=1;i<endPts.length;i++){
     if(endPts[i].y-endPts[i-1].y<minGap) endPts[i].y=endPts[i-1].y+minGap;
   }
@@ -117,10 +120,8 @@ function svgChart(items,compact=false){
     }
   }
   for(const el of endPts){
-    const labelX=W-p.r+6;
-    s+=`<line x1="${el.x}" y1="${el.y}" x2="${labelX-2}" y2="${el.y}" stroke="${el.color}" stroke-width=".5" opacity=".4"/>`;
-    const vs=(el.val>=0?'+':'')+el.val.toFixed(1)+'%';
-    s+=`<text x="${labelX}" y="${el.y+3.5}" fill="${el.color}" font-family="'JetBrains Mono',monospace" font-size="9.5" font-weight="600">${esc(el.ticker)}</text>`;
+    const labelX=W-p.r+12;
+    s+=`<g class="compare-end-label${dense?' dense-end-label':''}" data-series-id="${esc(el.id)}"><title>${esc(el.name)} · ${rate(el.val)}</title><line x1="${el.x}" y1="${el.actualY}" x2="${labelX-3}" y2="${el.y}" stroke="${el.color}" stroke-width="1" opacity=".6"/><circle cx="${labelX+9}" cy="${el.y}" r="9" fill="var(--surface)" stroke="${el.color}"/><text x="${labelX+9}" y="${el.y+3}" text-anchor="middle" fill="var(--text-2)" font-size="7">${esc(el.ticker.slice(0,2))}</text>${el.image?`<image href="${esc(el.image)}" x="${labelX}" y="${el.y-9}" width="18" height="18" onerror="this.remove()"/>`:''}<text x="${labelX+24}" y="${el.y+4}" fill="var(--text-1)" font-family="system-ui" font-size="11" font-weight="600">${esc(el.ticker)}</text></g>`;
   }
 
   s+='</svg>';
@@ -133,8 +134,11 @@ function chartCard(title,scope,pool,colorMap,compact=false){
   const items=pool.filter(visible).map(c=>({...c,_color:colorMap[c.id]}));
   const unavailable=pool.filter(c=>c.noData).length,stale=items.filter(c=>c.stale).length;
   const action=(fn,...args)=>`${fn}(${args.map(v=>esc(JSON.stringify(v))).join(',')})`;
-  const legend=pool.map(c=>`<button type="button" class="chart-ticker${visible(c)?' on':''}" style="--cc:${colorMap[c.id]}" aria-pressed="${visible(c)}" ${c.noData?'disabled':''} onclick="${action('toggleScopedCompare',scope,c.id)}" title="${esc(c.name)} · ${esc(catLabelOf(c.cat))}${c.stale?' · 지연 데이터':''}"><span class="cc-dot"></span><strong>${esc(c.ticker)}</strong><span>${c.noData?'차트 없음':rate(c.last)+(c.stale?' · 지연':'')}</span></button>`).join('');
-  return `<section class="multi-chart-card" data-chart-scope="${esc(scope)}"><div class="multi-chart-head"><div><h4>${esc(title)}</h4><p>${items.length}/${pool.length}종목 표시${unavailable?' · 차트 미수신 '+unavailable:''}${stale?' · 지연 '+stale:''}</p></div><div><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,true)}">모두 보기</button><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,false)}">모두 숨김</button></div></div><div class="sector-svg">${items.length?svgChart(items,compact):'<div class="compare-empty-chart">비교할 종목을 선택하세요</div>'}</div><div class="chart-ticker-legend" aria-label="${esc(title)} 티커 표시 선택">${legend}</div></section>`;
+  const groupIds=[...new Set(pool.map(c=>c.cat))];
+  const legend=groupIds.map(cat=>`<div class="chart-category-group" style="--category-color:${categoryColor(cat)}"><div class="chart-category-heading"><span></span><strong>${esc(catLabelOf(cat))}</strong><small>${pool.filter(c=>c.cat===cat&&visible(c)).length}/${pool.filter(c=>c.cat===cat).length}</small></div><div class="chart-category-tickers">${pool.filter(c=>c.cat===cat).map(c=>`<button type="button" class="chart-ticker${visible(c)?' on':''}" style="--cc:${colorMap[c.id]}" aria-pressed="${visible(c)}" ${c.noData?'disabled':''} onclick="${action('toggleScopedCompare',scope,c.id)}" onmouseenter="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onmouseleave="highlightCompareTicker(this,null)" onfocus="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onblur="highlightCompareTicker(this,null)" title="${esc(c.name)} · ${esc(catLabelOf(c.cat))}${c.stale?' · 지연 데이터':''}">${tickerLogo(c)}<span class="chart-ticker-identity"><strong>${esc(c.ticker)}</strong><small>${esc(c.name)}</small></span><span class="chart-ticker-return">${c.noData?'차트 없음':rate(c.last)+(c.stale?' · 지연':'')}</span></button>`).join('')}</div></div>`).join('');
+  const key=groupIds.map(cat=>`<span style="--category-color:${categoryColor(cat)}"><i></i>${esc(catLabelOf(cat))}</span>`).join('');
+
+  return `<section class="multi-chart-card" data-chart-scope="${esc(scope)}"><div class="multi-chart-head"><div><h4>${esc(title)}</h4><p>${items.length}/${pool.length}종목 표시${unavailable?' · 차트 미수신 '+unavailable:''}${stale?' · 지연 '+stale:''}</p></div><div><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,true)}">모두 보기</button><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,false)}">모두 숨김</button></div></div><div class="chart-category-key" aria-label="카테고리 색상">${key}</div><div class="sector-svg">${items.length?svgChart(items,compact):'<div class="compare-empty-chart">비교할 종목을 선택하세요</div>'}</div><div class="chart-ticker-legend" aria-label="${esc(title)} 티커 표시 선택">${legend}</div></section>`;
 }
 function chartWorkspace(all,groups,colorMap){
   const tabs=[['all','종합 · 전체 종목'],['selected','내가 선택한 종목'],['categories','카테고리별 차트']];
@@ -142,7 +146,7 @@ function chartWorkspace(all,groups,colorMap){
   let charts;
   if(chartView==='categories')charts=`<div class="category-charts-grid">${groups.map(cat=>{const pool=all.filter(c=>c.cat===cat);return pool.length?chartCard(catLabelOf(cat),'cat:'+cat,pool,colorMap,true):'';}).join('')}</div>`;
   else charts=chartCard(chartView==='all'?'종합 · 전체 종목':'내가 선택한 종목',chartView,all,colorMap);
-  return `<div class="multi-chart-workspace"><h3>다중 종목 차트</h3>${nav}<p class="category-ranking-note">각 수신 시계열의 첫 가격 = 0%. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다. 티커를 눌러 표시를 켜고 끄세요. 지연 데이터는 점선입니다.</p>${charts}</div>`;
+  return `<div class="multi-chart-workspace"><h3>다중 종목 차트</h3>${nav}<p class="category-ranking-note">각 수신 시계열의 첫 가격 = 0%. 기록 기간은 소스별로 달라 위 기간별 순위와 수치가 다를 수 있습니다. 색은 카테고리, 로고·이름은 종목을 나타냅니다. 티커에 마우스를 올리면 해당 선이 강조되고, 누르면 표시를 켜고 끕니다. 지연 데이터는 점선입니다.</p>${charts}</div>`;
 }
 
 function render(){
@@ -158,7 +162,7 @@ function render(){
   }
 
   // A ticker keeps the same color across overview, custom and category views.
-  const colorMap=Object.fromEntries(all.map((c,i)=>[c.id,getColor(i)]));
+  const colorMap=Object.fromEntries(all.map(c=>[c.id,categoryColor(c.cat)]));
 
   // Ranking uses the provider's named interval, never a partial collected sparkline.
   const expanded=new Set([...panel.querySelectorAll('details[data-compare-category][open]')].map(el=>el.dataset.compareCategory));
@@ -189,6 +193,16 @@ function render(){
   panel.innerHTML=`<div class="sector-head"><div><h3>카테고리별 상승 · 하락</h3><p>${rankingPeriod==='24h'?'최근 24시간':'최근 7일'} 변동률 · 내 목록에 있는 종목 기준</p></div>${actions}</div>${controls}${chips}<p class="category-ranking-note">미수신·지연 데이터는 순위에서 제외합니다. 주식의 24시간 수치는 전일 종가 대비입니다. 종목을 누르면 아래 ‘내가 선택한 종목’ 차트에 추가됩니다.</p>${chartWorkspace(all,groupsInOrder,colorMap)}`;
 }
 
+window.highlightCompareTicker=function(button,id){
+  const card=button.closest('.multi-chart-card');if(!card)return;
+  const marks=[...card.querySelectorAll('[data-series-id]')];
+  const found=id&&marks.some(el=>el.dataset.seriesId===id);
+  for(const el of marks){
+    const focused=found&&el.dataset.seriesId===id;
+    el.style.opacity=found?(focused?'1':'.12'):'';
+    el.classList.toggle('series-focused',!!focused);
+  }
+};
 window.renderCompareChart=render;
 window.setCompareView=function(view){if(['all','selected','categories'].includes(view)){chartView=view;render();}};
 window.toggleScopedCompare=function(scope,id){
