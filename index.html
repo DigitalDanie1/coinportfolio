@@ -785,6 +785,20 @@ function priceSeries(d) {
   const provider=d?.sparkline_in_7d?.price||[];
   return provider.length>collected.length?provider:collected;
 }
+/* Timestamps for the series priceSeries() returns. DEX candles and equity quotes carry their own;
+   CoinGecko's sparkline does not, but it is documented as 7 days of hourly points ending at the
+   fetch, so those are derived from it rather than guessed at. */
+function priceTimes(d) {
+  const series=priceSeries(d);
+  if(!series.length) return [];
+  const collected=d?.collectedHistory||[];
+  if(collected.length===series.length) return collected.map(p=>p.time);
+  const stamps=d?.sparklineTimes||[];
+  if(stamps.length===series.length) return stamps;
+  const end=d?.providerUpdatedAt||d?.updatedAt||Date.now();
+  const step=7*86400000/Math.max(series.length-1,1);
+  return series.map((_,i)=>end-(series.length-1-i)*step);
+}
 function parseGeckoInput(val) {
   if (!val) return null;
   val = val.trim();

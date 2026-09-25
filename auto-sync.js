@@ -69,8 +69,8 @@ async function fetchDexCandles(dex){
     if(!r.ok)return null;
     const rows=(await r.json())?.data?.attributes?.ohlcv_list;
     if(!Array.isArray(rows))return null;
-    const prices=rows.map(x=>Number(x[4])).filter(x=>Number.isFinite(x)&&x>0).reverse();
-    return prices.length?prices:null;
+    const kept=rows.filter(x=>Number.isFinite(Number(x[4]))&&Number(x[4])>0).reverse();
+    return kept.length?{price:kept.map(x=>Number(x[4])),times:kept.map(x=>Number(x[0])*1000)}:null;
   };
   let prices=await ohlcv(dex.pair);
   if(!prices&&/^[a-zA-Z0-9]{1,100}$/.test(dex.token||'')){
@@ -97,9 +97,10 @@ async function fillDexHistories(){
     let prices=null;
     try{prices=await fetchDexCandles(c.dex);}catch{}
     const d=marketByCoin[c.id];
-    if(prices&&d){
-      const change=prices[0]>0?(prices[prices.length-1]/prices[0]-1)*100:null;
-      marketByCoin[c.id]={...d,sparkline_in_7d:{price:prices},price_change_percentage_7d_in_currency:change,chartSource:'GeckoTerminal · 1시간'};
+    if(prices?.price?.length&&d){
+      const px=prices.price;
+      const change=px[0]>0?(px[px.length-1]/px[0]-1)*100:null;
+      marketByCoin[c.id]={...d,sparkline_in_7d:{price:px},sparklineTimes:prices.times,price_change_percentage_7d_in_currency:change,chartSource:'GeckoTerminal · 1시간'};
       if(c.gecko)mkt[c.gecko]=marketByCoin[c.id];
       changed=true;misses=0;
     }else if(++misses>=3)break;
@@ -118,7 +119,10 @@ function applyMarketResponse(response){
     // one, or the chart pins itself to whatever it first accumulated.
     const kept=previous?.sparkline_in_7d?.price||[],fresh=marketByCoin[id]?.sparkline_in_7d?.price||[];
     if(fresh.length<10&&kept.length>=10){
+      // The series and its timestamps have to be carried over together or the axis dates stop
+      // describing the points they sit under.
       marketByCoin[id]={...marketByCoin[id],sparkline_in_7d:{price:kept},
+        sparklineTimes:previous.sparklineTimes||[],
         price_change_percentage_7d_in_currency:marketByCoin[id].price_change_percentage_7d_in_currency??previous.price_change_percentage_7d_in_currency,
         chartSource:marketByCoin[id].chartSource||previous.chartSource};
     }

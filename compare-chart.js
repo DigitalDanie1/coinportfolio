@@ -40,7 +40,7 @@ function gatherCoins(){
     const value=rankingPeriod==='24h'?d?.price_change_percentage_24h:d?.price_change_percentage_7d_in_currency;
     const change=value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))?Number(value):null;
     const stale=!!d?.stale||!!(d?.updatedAt&&Date.now()-d.updatedAt>300000);
-    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,image:logoURL(d?.image),norm,last:norm?.at(-1)??0,noData:!norm,change,stale});
+    out.push({id:coin.id,ticker:coin.ticker,name:coin.name,cat:coin.cat,image:logoURL(d?.image),norm,times:norm?priceTimes(d):null,last:norm?.at(-1)??0,noData:!norm,change,stale});
   }
   return out;
 }
@@ -92,10 +92,22 @@ function svgChart(items,compact=false){
     const zy=ty(0);
     s+=`<line x1="${p.l}" y1="${zy}" x2="${W-p.r}" y2="${zy}" stroke="var(--grid-strong)" stroke-dasharray="5,4"/>`;
   }
-  // Relative progress only: providers return different history windows.
-  for(const [progress,label] of [[0,'기록 시작'],[.5,'기록 중간'],[1,'최근 수신']]){
+  // Real dates off the plotted window. Series can start at different times, so the span shown is
+  // the widest one on the chart and each label is the date actually standing at that position.
+  let axisFrom=Infinity,axisTo=-Infinity;
+  for(const c of items){
+    const t=c.times;
+    if(!t?.length)continue;
+    if(t[0]<axisFrom)axisFrom=t[0];
+    if(t[t.length-1]>axisTo)axisTo=t[t.length-1];
+  }
+  const fmtDay=ms=>{const d=new Date(ms);return `${d.getMonth()+1}.${d.getDate()}`;};
+  const ticks=Number.isFinite(axisFrom)&&axisTo>axisFrom
+    ? [0,.25,.5,.75,1].map(f=>[f,fmtDay(axisFrom+(axisTo-axisFrom)*f)])
+    : [[0,'기록 시작'],[.5,'기록 중간'],[1,'최근 수신']];
+  for(const [progress,label] of ticks){
     const x=p.l+progress*pw;
-    s+=`<text x="${x}" y="${H-10}" fill="var(--text-3)" font-family="system-ui" font-size="12" text-anchor="middle">${label}</text>`;
+    s+=`<text x="${x}" y="${H-10}" fill="var(--text-3)" font-family="system-ui" font-size="12" text-anchor="${progress===0?'start':progress===1?'end':'middle'}">${label}</text>`;
   }
 
   // lines
@@ -144,7 +156,7 @@ function chartCard(title,scope,pool,colorMap,compact=false){
   const action=(fn,...args)=>`${fn}(${args.map(v=>esc(JSON.stringify(v))).join(',')})`;
   const groupIds=[...new Set(pool.map(c=>c.cat))];
   const legend=groupIds.map(cat=>`<div class="chart-category-group" style="--category-color:${categoryColor(cat)}">${(()=>{const inCat=pool.filter(c=>c.cat===cat),shownCat=inCat.filter(visible).length,allOn=shownCat===inCat.filter(c=>!c.noData).length&&shownCat>0;
-    return `<button type="button" class="chart-category-heading" aria-pressed="${allOn}" onclick="${action('setScopedCategory',scope,cat,!allOn)}" title="${esc(catLabelOf(cat))} 전체 ${allOn?'숨기기':'보기'}"><span></span><strong>${esc(catLabelOf(cat))}</strong><small>${shownCat}/${inCat.length}</small><em>${allOn?'전체 숨김':'전체 선택'}</em></button>`;})()}<div class="chart-category-tickers">${pool.filter(c=>c.cat===cat).map(c=>`<button type="button" class="chart-ticker${visible(c)?' on':''}${c.noData?'':moveBand(c.last)}" style="--cc:${colorMap[c.id]}" aria-pressed="${visible(c)}" ${c.noData?'disabled':''} data-drag-id="${esc(c.id)}" onclick="${action('toggleScopedCompare',scope,c.id)}" onmouseenter="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onmouseleave="highlightCompareTicker(this,null)" onfocus="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onblur="highlightCompareTicker(this,null)" title="${esc(c.name)} · ${esc(catLabelOf(c.cat))}${c.stale?' · 지연 데이터':''}">${tickerLogo(c)}<span class="chart-ticker-identity"><strong>${esc(c.ticker)}</strong><small>${esc(c.name)}</small></span><span class="chart-ticker-return">${c.noData?'차트 없음':rate(c.last)+(c.stale?' · 지연':'')}</span>${c.noData||Math.abs(c.last)<20?'':`<span class="move-flag" aria-hidden="true">${c.last>=50?'▲▲':c.last>=20?'▲':c.last<=-50?'▼▼':'▼'}</span>`}</button>`).join('')}</div></div>`).join('');
+    return `<div class="chart-category-heading"><span></span><strong>${esc(catLabelOf(cat))}</strong><small>${shownCat}/${inCat.length}</small><button type="button" class="cat-select-all${allOn?' on':''}" aria-pressed="${allOn}" onclick="${action('setScopedCategory',scope,cat,!allOn)}"><i></i>${allOn?'전체 해제':'전체 선택'}</button></div>`;})()}<div class="chart-category-tickers">${pool.filter(c=>c.cat===cat).map(c=>`<button type="button" class="chart-ticker${visible(c)?' on':''}${c.noData?'':moveBand(c.last)}" style="--cc:${colorMap[c.id]}" aria-pressed="${visible(c)}" ${c.noData?'disabled':''} data-drag-id="${esc(c.id)}" onclick="${action('toggleScopedCompare',scope,c.id)}" onmouseenter="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onmouseleave="highlightCompareTicker(this,null)" onfocus="highlightCompareTicker(this,${esc(JSON.stringify(c.id))})" onblur="highlightCompareTicker(this,null)" title="${esc(c.name)} · ${esc(catLabelOf(c.cat))}${c.stale?' · 지연 데이터':''}">${tickerLogo(c)}<span class="chart-ticker-identity"><strong>${esc(c.ticker)}</strong><small>${esc(c.name)}</small></span><span class="chart-ticker-return">${c.noData?'차트 없음':rate(c.last)+(c.stale?' · 지연':'')}</span>${c.noData||Math.abs(c.last)<20?'':`<span class="move-flag" aria-hidden="true">${c.last>=50?'▲▲':c.last>=20?'▲':c.last<=-50?'▼▼':'▼'}</span>`}</button>`).join('')}</div></div>`).join('');
   const key=groupIds.map(cat=>`<span style="--category-color:${categoryColor(cat)}"><i></i>${esc(catLabelOf(cat))}</span>`).join('');
 
   return `<section class="multi-chart-card" data-chart-scope="${esc(scope)}"><div class="multi-chart-head"><div><h4>${esc(title)}</h4><p>${items.length}/${pool.length}종목 표시${unavailable?' · 차트 미수신 '+unavailable:''}${stale?' · 지연 '+stale:''}</p></div><div><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,true)}">모두 보기</button><button class="btn btn-sm" onclick="${action('setScopedCompare',scope,false)}">모두 숨김</button></div></div><div class="chart-category-key" aria-label="카테고리 색상">${key}</div><div class="sector-svg">${items.length?svgChart(items,compact):'<div class="compare-empty-chart">비교할 종목을 선택하세요</div>'}</div><div class="chart-ticker-legend" aria-label="${esc(title)} 티커 표시 선택">${legend}</div></section>`;

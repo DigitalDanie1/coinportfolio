@@ -816,11 +816,17 @@ td>.row-cat{box-shadow:inset 9px 0 0 -5px var(--cc)}
 .move-flag{font-size:.6rem;letter-spacing:-1px;margin-left:2px}
 .chart-ticker[class*="move-up"] .move-flag{color:var(--green)}
 .chart-ticker[class*="move-down"] .move-flag{color:var(--red)}
-/* Category heading doubles as the select-all for its group. */
-.chart-category-heading{display:flex;align-items:center;gap:7px;width:100%;background:none;border:0;font:inherit;
-  color:inherit;cursor:pointer;padding:4px 2px;text-align:left;border-radius:6px}
-.chart-category-heading:hover{background:var(--surface-2)}
-.chart-category-heading em{margin-left:auto;font-style:normal;font-size:.68rem;font-weight:600;color:var(--text-3);opacity:0}
-.chart-category-heading:hover em,.chart-category-heading:focus-visible em{opacity:1}
+/* The group's select-all is a button that looks like one, always visible, not a hover hint. */
+.chart-category-heading{display:flex;align-items:center;gap:7px;width:100%;padding:4px 2px}
+.cat-select-all{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:.72rem;
+  font-weight:650;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border-h);
+  border-radius:999px;padding:5px 11px 5px 8px;min-height:30px;cursor:pointer;white-space:nowrap}
+.cat-select-all:hover{color:var(--text-1);border-color:var(--text-3);background:var(--surface-3)}
+.cat-select-all i{width:12px;height:12px;border:1.5px solid var(--text-3);border-radius:3px;position:relative;flex-shrink:0}
+.cat-select-all.on{color:var(--main-ink);background:var(--main);border-color:var(--main)}
+.cat-select-all.on:hover{background:var(--main-hover);border-color:var(--main-hover)}
+.cat-select-all.on i{border-color:var(--main-ink);background:var(--main-ink)}
+.cat-select-all.on i::after{content:"";position:absolute;left:3.5px;top:1px;width:3px;height:6px;
+  border:solid var(--main);border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
 body.dragging-chips{user-select:none}
 body.dragging-chips .chart-ticker{cursor:crosshair}
