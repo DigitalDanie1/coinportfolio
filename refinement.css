@@ -789,3 +789,18 @@ td>.row-cat{box-shadow:inset 9px 0 0 -5px var(--cc)}
 .scenario-legacy{margin-top:20px;border-top:1px solid var(--border-h);padding-top:16px}.scenario-legacy summary{cursor:pointer;font-size:.82rem}.scenario-legacy>p{font-size:.73rem;color:var(--text-3);margin:10px 0}
 #workspace-scenario .scenario-legacy textarea{min-height:140px}
 @media(max-width:950px){#scenario-framework{grid-template-columns:1fr}.scenario-step{padding:15px}}
+
+/* Size of the move, read as weight: a +99% chip must not look like a +2% one. */
+.chart-ticker-return{font-weight:680;font-variant-numeric:tabular-nums}
+.chart-ticker.move-up-1{border-color:color-mix(in srgb,var(--green) 40%,var(--border-h))}
+.chart-ticker.move-up-2{border-color:color-mix(in srgb,var(--green) 70%,transparent);background:color-mix(in srgb,var(--green) 9%,var(--surface-2))}
+.chart-ticker.move-up-3{border-color:var(--green);background:color-mix(in srgb,var(--green) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--green)}
+.chart-ticker.move-down-1{border-color:color-mix(in srgb,var(--red) 40%,var(--border-h))}
+.chart-ticker.move-down-2{border-color:color-mix(in srgb,var(--red) 70%,transparent);background:color-mix(in srgb,var(--red) 9%,var(--surface-2))}
+.chart-ticker.move-down-3{border-color:var(--red);background:color-mix(in srgb,var(--red) 17%,var(--surface-2));box-shadow:inset 3px 0 0 var(--red)}
+.chart-ticker[class*="move-up"] .chart-ticker-return{color:var(--green)}
+.chart-ticker[class*="move-down"] .chart-ticker-return{color:var(--red)}
+.chart-ticker[class*="move-up-3"] strong,.chart-ticker[class*="move-down-3"] strong{font-weight:750}
+.move-flag{font-size:.6rem;letter-spacing:-1px;margin-left:2px}
+.chart-ticker[class*="move-up"] .move-flag{color:var(--green)}
+.chart-ticker[class*="move-down"] .move-flag{color:var(--red)}
