@@ -863,3 +863,4 @@ body.dragging-chips .chart-ticker{cursor:crosshair}
 .pair-venue-note{font-size:.68rem;color:var(--text-2)}
 .oi-foot{font-size:.7rem;color:var(--text-2);margin-top:10px;line-height:1.6}
 @media(max-width:760px){#pair-board .oi-pair-grid{grid-template-columns:1fr}}
+.venue-chip .venue-wallet{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.64rem;color:var(--text-2);margin-top:2px}
