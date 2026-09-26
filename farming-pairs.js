@@ -10,7 +10,7 @@ const FARMING_VENUES=[
   {key:'pacifica',  name:'Pacifica',    logo:'logos/pacifica.png',  site:'https://pacifica.fi',    aliases:['pacifica','pacfica','pacficia'], wallet:'AQp6bfM9PTSBsNddQ8JNu2nhyA78XgTz5FeSC4xe2Ha1'},
   {key:'qfex',      name:'QFEX',        logo:'logos/qfex.svg',      site:'https://qfex.com',       aliases:['qfex'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
   {key:'quote',     name:'Quote',       logo:null,                  site:null,                     aliases:['quote'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
-  {key:'n1',        name:'N1',          logo:'logos/n1.png',        site:'https://n1.xyz',         aliases:['n1','n 1','n1.xyz','01 exchange','01.xyz']},
+  {key:'n1',        name:'N1',          logo:'logos/n1.png',        site:'https://n1.xyz',         aliases:['n1','n 1','n1.xyz','01 exchange','01.xyz'], wallet:'AQp6bfM9PTSBsNddQ8JNu2nhyA78XgTz5FeSC4xe2Ha1'},
   {key:'titanx', name:'TitanX', logo:'logos/titanx.ico', site:'https://waitlist.titanx.cc/', aliases:['titanx','titan x','titan']},
   {key:'derpetual', name:'Derpetual', logo:'logos/derpetual.ico', site:'https://www.derpetual.com/', aliases:['derpetual']}
 ];
