@@ -7,7 +7,7 @@ const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORTFOLIO_PORT||8787);
 const service=new DataService({cacheDir:path.join(ROOT,'.data')});
 await service.restore();
-const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js'],
+const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/oi-strategies.js','oi-strategies.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js'],
   ...['risex.png','truenorth.ico','arcus.png','entropy.png','hello.svg','mnx.ico','pacifica.png','qfex.svg'].map(f=>['/logos/'+f,'logos/'+f])]);
 const MIME=new Map([['.js','text/javascript'],['.css','text/css'],['.png','image/png'],['.svg','image/svg+xml'],['.ico','image/x-icon']]);
 const origins=new Set(['null',`http://127.0.0.1:${PORT}`,`http://localhost:${PORT}`]);
