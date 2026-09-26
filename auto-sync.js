@@ -129,7 +129,7 @@ function applyMarketResponse(response){
     const c=coins.find(x=>x.id===id);if(!c)continue;
     const d=marketByCoin[id];
     if(d.canonicalName)c.name=d.canonicalName;
-    if(d.canonicalSymbol){c.originalTicker ||= c.ticker;c.ticker=d.canonicalSymbol;}
+    if(d.canonicalSymbol&&!c.keepTicker&&!c.edited?.ticker){c.originalTicker ||= c.ticker;c.ticker=d.canonicalSymbol;}
     if(d.canonicalId||d.current_price!=null){
       // Synthetic local keys do not alter provider identities or user journal IDs.
       const key=d.canonicalId||c.gecko||'auto:'+id;

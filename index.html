@@ -321,6 +321,7 @@ const DEFAULT_CATEGORIES = [
   { id:'fomo',   label:'포모·밈',  color:'#ff6b35' },
   { id:'etc',    label:'기타',     color:'#5b8def' },
   { id:'equities', label:'크립토 주식', color:'#a78bfa' },
+  { id:'depin',  label:'DePin',    color:'#14b8a6' },
 ];
 const CATEGORY_PALETTE = ['#c8ff00','#ff6b35','#5b8def','#a78bfa','#22c55e','#f59e0b','#06b6d4','#ec4899','#14b8a6','#f97316','#8b5cf6','#e879f9'];
 const DEFAULTS = [
@@ -342,7 +343,7 @@ const DEFAULTS = [
   { id:'rock',  ticker:'ROCK',  name:'Ether Rock',  note:'Meme',      gecko:null,                cat:'fomo', dex:{chain:'solana',pair:'8iUZBKeXCuHDxjbHVFPqhXy14Wk6ZPtC572g7GAtgRVE',token:'7LxC96Ag4DnBotK6bMMUj4kdneAo1kdV1xHnzVF5s7W2'} },
   { id:'dex-solana-purr', ticker:'PURR', name:'Hypurr', note:'Solana', gecko:null,               cat:'fomo', dex:{chain:'solana',pair:'Ad7pbBvVRNofo96WR6eHwmU2o4naZ6Lao1J98hW8a1TQ',token:'8RNUw4N655VSrZKuhGdywhbSMDTrheguFPfxbpE2NZHQ'} },
   { id:'dex-robinhood-frong', ticker:'FRONG', name:'frong', note:'Robinhood', gecko:null,        cat:'fomo', dex:{chain:'robinhood',pair:'0xacea8920877840033f0275c37f9b61550b5326917e948bcf8339714d96f9521a',token:'0x6245e67affA44a23077f0Ea7f981a8DC743a0c47'} },
-  { id:'dex-robinhood-orbio', ticker:'ORBIO', name:'Orbio.so', note:'Robinhood', gecko:null,     cat:'fomo', dex:{chain:'robinhood',pair:'0xa95b1fbdccb15d2b07509b980f63adab8a94303b1781f5ebc53b72942d12ddc1',token:'0xAa07A0e9209e16aC99708C3EC70159c6eF3128A3'} },
+  { id:'dex-robinhood-orbio', ticker:'ORBIO', name:'Orbio.so', note:'추론 마켓', gecko:null,     cat:'depin', dex:{chain:'robinhood',pair:'0xa95b1fbdccb15d2b07509b980f63adab8a94303b1781f5ebc53b72942d12ddc1',token:'0xAa07A0e9209e16aC99708C3EC70159c6eF3128A3'} },
   { id:'dex-robinhood-net', ticker:'NET', name:'NetNet', note:'Robinhood', gecko:null,           cat:'fomo', dex:{chain:'robinhood',pair:'0x59F95461E68e0c77605299791E1449f175165B54',token:'0xCA9c78Dd337A67F6e0077F65F5E9218719d30eDf'} },
   { id:'dex-robinhood-delta', ticker:'DELTA', name:'Delta', note:'Robinhood', gecko:null,        cat:'fomo', dex:{chain:'robinhood',pair:'0xD64FbdA67E1015dF43Fa5e49F02cA844729E5F94',token:'0xe8ffd7e24187F72afB08d75B1bb13088A989a791'} },
   { id:'dex-robinhood-juggernaut', ticker:'JUGGERNAUT', name:'The Juggernaut', note:'Robinhood', gecko:null, cat:'fomo', dex:{chain:'robinhood',pair:'0x588b0785f50063260003B7790C42f1eF74902746',token:'0xD7321801CAae694090694Ff55A9323139F043B88'} },
@@ -378,6 +379,19 @@ const DEFAULTS = [
   { id:'wulf', ticker:'WULF', name:'TeraWulf', note:'채굴', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:WULF'} },
   { id:'keel', ticker:'KEEL', name:'Keel Infrastructure', note:'인프라', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:KEEL'} },
   { id:'ibit', ticker:'IBIT', name:'iShares Bitcoin Trust', note:'BTC 현물 ETF', gecko:null, cat:'equities', equity:{symbol:'NASDAQ:IBIT'} },
+  { id:'vvv', ticker:'VVV', name:'Venice Token', note:'추론 마켓', gecko:'venice-token', providerId:'venice-token', cat:'depin' },
+  { id:'dot-ai', ticker:'DOT', name:'Dot', note:'추론 마켓', gecko:'dot', providerId:'dot', cat:'depin' },
+  { id:'pod', ticker:'POD', name:'Dolphin', note:'추론 마켓', gecko:'dolphin-2', providerId:'dolphin-2', cat:'depin' },
+  { id:'serv', ticker:'SERV', name:'OpenServ', note:'추론 마켓', gecko:'openserv', providerId:'openserv', cat:'depin' },
+  { id:'chip', ticker:'CHIP', name:'USD.AI', note:'GPU 담보·렌탈', gecko:'chip-2', providerId:'chip-2', cat:'depin' },
+  { id:'akt', ticker:'AKT', name:'Akash Network', note:'GPU 담보·렌탈', gecko:'akash-network', providerId:'akash-network', cat:'depin' },
+  { id:'io', ticker:'IO', name:'io.net', note:'GPU 담보·렌탈', gecko:'io', providerId:'io', cat:'depin' },
+  { id:'ath', ticker:'ATH', name:'Aethir', note:'GPU 담보·렌탈', gecko:'aethir', providerId:'aethir', cat:'depin' },
+  { id:'prl', ticker:'PRL', name:'Perle', note:'컴퓨팅·네트워크', gecko:'perle', providerId:'perle', cat:'depin' },
+  { id:'nock', ticker:'NOCK', name:'Nockchain', note:'컴퓨팅·네트워크', gecko:'nockchain', providerId:'nockchain', cat:'depin' },
+  { id:'gensyn', ticker:'GENSYN', name:'Gensyn', note:'컴퓨팅·네트워크', gecko:'gensyn', providerId:'gensyn', cat:'depin' , keepTicker:true},
+  { id:'tao', ticker:'TAO', name:'Bittensor', note:'컴퓨팅·네트워크', gecko:'bittensor', providerId:'bittensor', cat:'depin' },
+  { id:'geod', ticker:'GEOD', name:'Geodnet', note:'DePIN', gecko:'geodnet', providerId:'geodnet', cat:'depin' },
 ];
 
 // ═══ STATE ══════════════════════════════
@@ -390,6 +404,7 @@ let scenario = {text:'',updatedAt:null};
 let reflections = null;
 let appliedImports = [];
 let removedDefaults = [];
+let migrations = [];
 let mkt = {};
 let categories = [];
 let currentTab = 'all';
@@ -433,9 +448,17 @@ function load() {
         if (df.note !== c.note && !mine.note) c.note = df.note;
         if (df.dex && !c.dex && !mine.dex) c.dex = JSON.parse(JSON.stringify(df.dex));
         if (df.equity && !c.equity) c.equity = JSON.parse(JSON.stringify(df.equity));
+        if (df.keepTicker) c.keepTicker = true;
       }
       for (const df of DEFAULTS) {
-        if (!coins.find(c => c.id === df.id) && !removedDefaults.includes(df.id)) coins.push(JSON.parse(JSON.stringify(df)));
+        const held = coins.find(c => c.id === df.id || (df.gecko && (c.gecko === df.gecko || c.providerId === df.gecko)));
+        if (!held && !removedDefaults.includes(df.id)) coins.push(JSON.parse(JSON.stringify(df)));
+      }
+      migrations = Array.isArray(d.migrations) ? d.migrations : [];
+      if (!migrations.includes('depin-v1')) {
+        const depinIds = new Set(DEFAULTS.filter(x => x.cat === 'depin').flatMap(x => [x.id, x.gecko].filter(Boolean)));
+        for (const c of coins) if (depinIds.has(c.id) || depinIds.has(c.gecko) || depinIds.has(c.providerId)) c.cat = 'depin';
+        migrations.push('depin-v1');
       }
       const fallback = categories[0].id;
       for (const c of coins) if (!categories.some(x => x.id === c.cat)) c.cat = fallback;
@@ -449,7 +472,7 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories, migrations })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
 // ═══ BACKUP: EXPORT / IMPORT ════════════
