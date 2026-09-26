@@ -146,14 +146,28 @@ function svgChart(items,compact=false){
   }
   for(const el of endPts){
     const labelX=W-p.r+12;
-    s+=`<g class="compare-end-label${dense?' dense-end-label':''}" data-series-id="${esc(el.id)}"><title>${esc(el.name)} · ${rate(el.val)}</title><line x1="${el.x}" y1="${el.actualY}" x2="${labelX-3}" y2="${el.y}" stroke="${el.color}" stroke-width="1" opacity=".6"/><circle cx="${labelX+9}" cy="${el.y}" r="9" fill="var(--surface)" stroke="${el.color}"/><text x="${labelX+9}" y="${el.y+3}" text-anchor="middle" fill="var(--text-2)" font-size="7">${esc(el.ticker.slice(0,2))}</text>${el.image?`<image href="${esc(el.image)}" x="${labelX}" y="${el.y-9}" width="18" height="18" onerror="this.remove()"/>`:''}<text x="${labelX+24}" y="${el.y+4}" fill="var(--text-1)" font-family="system-ui" font-size="11" font-weight="600">${esc(el.ticker)}</text></g>`;
+    s+=`<g class="compare-end-label${dense?' dense-end-label':''}" data-series-id="${esc(el.id)}"><title>${esc(el.name)} · ${rate(el.val)}</title><line x1="${el.x}" y1="${el.actualY}" x2="${labelX-3}" y2="${el.y}" stroke="${el.color}" stroke-width="1.5" opacity=".85"/><circle cx="${labelX+9}" cy="${el.y}" r="9" fill="var(--surface)" stroke="${el.color}"/><text x="${labelX+9}" y="${el.y+3}" text-anchor="middle" fill="var(--text-2)" font-size="7">${esc(el.ticker.slice(0,2))}</text>${el.image?`<image href="${esc(el.image)}" x="${labelX}" y="${el.y-9}" width="18" height="18" onerror="this.remove()"/>`:''}<rect x="${labelX+22}" y="${el.y-6}" width="3.5" height="12" rx="1.5" fill="${el.color}"/><text x="${labelX+30}" y="${el.y+4}" fill="var(--text-1)" font-family="system-ui" font-size="11" font-weight="600">${esc(el.ticker)}</text></g>`;
   }
 
   s+='</svg>';
   return s;
 }
 
+// Inside one category (or one conviction tier) every line would share the category colour, which
+// says nothing there — so those cards give each coin its own hue. Red and green are left out so a
+// line's colour is never read as up or down, and every hue clears 3:1 on both themes' cards. Colours are handed out in order of final return, so
+// the lines that end up next to each other — the ones that need telling apart — never share a hue.
+const LINE_PALETTE=['#2563eb','#ea580c','#9333ea','#0891b2','#db2777','#b45309','#6366f1','#0d9488','#c026d3','#a16207','#0284c7','#e11d48','#64748b','#c2410c','#0e7490','#a855f7','#78716c','#0f766e','#ec4899','#7c3aed'];
+function distinctColors(pool,base){
+  const map={...base};
+  const ranked=pool.filter(c=>!c.noData).sort((a,b)=>b.last-a.last);
+  // Past twenty, repeat the palette rather than generate hues: generated ones drift into red and
+  // green, and a repeat twenty places apart never lands beside its twin.
+  ranked.forEach((c,i)=>{map[c.id]=LINE_PALETTE[i%LINE_PALETTE.length];});
+  return map;
+}
 function chartCard(title,scope,pool,colorMap,compact=false){
+  if(/^(cat|conv):/.test(scope))colorMap=distinctColors(pool,colorMap);
   const hidden=hiddenByScope.get(scope)||new Set();
   const visible=c=>!c.noData&&(scope==='selected'?selected.has(c.id):!hidden.has(c.id));
   const items=pool.filter(visible).map(c=>({...c,_color:colorMap[c.id]}));
