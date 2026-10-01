@@ -138,7 +138,7 @@ const CPSync=(()=>{
     const box=document.getElementById('sync-panel');if(!box)return;
     const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     if(configured===false){box.innerHTML='<p class="form-help">동기화 서버가 설정되지 않아 이 기기에만 저장됩니다.</p>';return;}
-    const paste=`<div class="field"><label for="sync-key-input">다른 기기의 연결 링크 · 키 붙여넣기</label><input id="sync-key-input" autocomplete="off" spellcheck="false" placeholder="https://…/#sync=…"></div><div class="backup-actions"><button type="button" class="btn" id="sync-connect">연결하고 데이터 합치기</button></div>`;
+    const paste=`<div class="field" style="margin-top:18px"><label for="sync-key-input">다른 기기의 연결 링크 · 키 붙여넣기</label><input id="sync-key-input" autocomplete="off" spellcheck="false" placeholder="https://…/#sync=…"></div><div class="backup-actions"><button type="button" class="btn" id="sync-connect">연결하고 데이터 합치기</button></div>`;
     if(st.key){
       box.innerHTML=`<p class="form-help">연결 링크를 다른 기기에서 열면 두 기기의 데이터가 합쳐지고 이후 자동으로 동기화됩니다. 링크는 본인만 알아야 합니다.</p>
       <div class="field"><label for="sync-link">연결 링크</label><input id="sync-link" readonly value="${esc(linkFor(st.key))}"></div>
