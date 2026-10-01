@@ -63,9 +63,17 @@ function downsample(arr,target){
   return Array.from({length:target},(_,i)=>arr[Math.round(i*(arr.length-1)/(target-1))]);
 }
 
+let plotW=0,fitting=false;
+// 카드 안쪽 폭을 재서 차트가 카드 전체 폭을 쓰게 한다. 폭이 바뀌면 한 번 다시 그린다.
+function fitPlotWidth(panel){
+  const box=panel.querySelector?.('.sector-svg');if(!box||!box.clientWidth)return false;
+  const cs=getComputedStyle(box),w=Math.round(box.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight));
+  if(w>200&&Math.abs(w-plotW)>2){plotW=w;return true;}return false;
+}
 function svgChart(items,compact=false){
-  const W=compact?720:1200,H=compact?360:480;
-  const p={t:28,r:compact?150:185,b:46,l:65};
+  // 폭은 카드 안쪽 실측값(plotW)을 그대로 viewBox로 쓴다. 측정 전·테스트 환경은 예전 고정 폭.
+  const W=plotW||(compact?720:1200),narrow=W<600,H=plotW?Math.max(280,Math.min(400,Math.round(W*.42))):(compact?360:480);
+  const p={t:28,r:narrow?100:120,b:46,l:narrow?52:65};
   const pw=W-p.l-p.r,ph=H-p.t-p.b;
 
   const vals=[];
@@ -243,6 +251,7 @@ function render(){
   const actions=`<div class="compare-actions">${pending?`<button class="btn btn-sm" id="auto-dex-btn" onclick="autoConnectDex()">미연결 ${pending}개 자동 연결</button>`:''}<button class="btn btn-sm" onclick="compareSelectAll()">전체 선택</button><button class="btn btn-sm" onclick="compareClear()">초기화</button></div>`;
 
   panel.innerHTML=`<div class="sector-head"><div><h3>카테고리별 상승 · 하락</h3><p>${rankingPeriod==='24h'?'최근 24시간':'최근 7일'} 변동률 · 내 목록에 있는 종목 기준</p></div>${actions}</div>${controls}${chips}<p class="category-ranking-note">미수신·지연 데이터는 순위에서 제외합니다. 주식의 24시간 수치는 전일 종가 대비입니다. 종목을 누르면 아래 ‘내가 선택한 종목’ 차트에 추가됩니다.</p>${chartWorkspace(all,groupsInOrder,colorMap)}`;
+  if(!fitting&&fitPlotWidth(panel)){fitting=true;try{render();}finally{fitting=false;}}
 }
 
 window.highlightCompareTicker=function(button,id){
@@ -256,6 +265,7 @@ window.highlightCompareTicker=function(button,id){
   }
 };
 window.renderCompareChart=render;
+{let timer;window.addEventListener?.('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{const panel=document.getElementById('compare-panel');if(panel&&fitPlotWidth(panel))render();},150);});}
 window.setCompareView=function(view){if(['all','selected','categories','conviction'].includes(view)){chartView=view;render();}};
 window.toggleScopedCompare=function(scope,id){
   if(scope==='selected'){window.toggleCompare(id);return;}

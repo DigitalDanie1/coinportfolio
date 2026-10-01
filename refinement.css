@@ -733,7 +733,7 @@ button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
 .multi-chart-tabs [aria-pressed="true"]{background:var(--surface-3);border-color:var(--main);color:var(--text-1)}
 .multi-chart-card{background:var(--surface);border:1px solid var(--border-h);border-radius:12px;padding:16px;min-width:0}
 .multi-chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.multi-chart-head h4{font-size:.84rem}.multi-chart-head p{font-size:.67rem;color:var(--text-3);margin-top:5px}.multi-chart-head>div:last-child{display:flex;gap:5px}.multi-chart-head .btn{padding:6px 8px;min-height:30px;font-size:.66rem}
-.category-charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.category-charts-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
 .multi-chart-card .sector-svg{margin:0}.multi-chart-card .sector-svg svg{display:block;width:100%;height:auto}
 .chart-ticker-legend{display:flex;flex-wrap:wrap;gap:5px;padding-top:12px;border-top:1px solid var(--border-h);margin-top:10px;max-height:180px;overflow:auto}
 .chart-ticker{font:inherit;font-size:.65rem;border:1px solid var(--border-h);border-radius:6px;background:var(--surface-2);color:var(--text-3);padding:6px 8px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
