@@ -3,11 +3,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {DataService} from './lib/data-service.mjs';
+import {storeFromEnv,FileStore,handleSync,MAX_BODY} from './lib/sync-store.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url));
 const PORT=Number(process.env.PORTFOLIO_PORT||8787);
 const service=new DataService({cacheDir:path.join(ROOT,'.data')});
 await service.restore();
-const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/oi-strategies.js','oi-strategies.js'],['/gap-strategies.js','gap-strategies.js'],['/farming-extras.js','farming-extras.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js'],
+// Sync storage: Upstash when env is set, otherwise a local file store under .data/ (dev only).
+const syncStore=storeFromEnv()||new FileStore(path.join(ROOT,'.data','sync'));
+const publicFiles=new Map([['/','index.html'],['/index.html','index.html'],['/position-tools.js','position-tools.js'],['/auto-sync.js','auto-sync.js'],['/sync-core.js','sync-core.js'],['/sync-client.js','sync-client.js'],['/journal-view.js','journal-view.js'],['/dex-imports.js','dex-imports.js'],['/farming-pairs.js','farming-pairs.js'],['/oi-strategies.js','oi-strategies.js'],['/gap-strategies.js','gap-strategies.js'],['/farming-extras.js','farming-extras.js'],['/refinement.css','refinement.css'],['/sector-chart.js','sector-chart.js'],['/compare-chart.js','compare-chart.js'],['/bubble-chart.js','bubble-chart.js'],
   ...['risex.png','truenorth.ico','arcus.png','entropy.png','hello.svg','mnx.ico','pacifica.png','qfex.svg','n1.png','titanx.ico','derpetual.ico','variational.png','robinhood.png','lighter.png'].map(f=>['/logos/'+f,'logos/'+f])]);
 const MIME=new Map([['.js','text/javascript'],['.css','text/css'],['.png','image/png'],['.svg','image/svg+xml'],['.ico','image/x-icon']]);
 const origins=new Set(['null',`http://127.0.0.1:${PORT}`,`http://localhost:${PORT}`]);
@@ -27,10 +30,15 @@ const server=http.createServer(async(req,res)=>{
   if(origin&&!origins.has(origin)){res.writeHead(403).end();return;}
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');
-  if(req.method==='OPTIONS'){res.setHeader('Access-Control-Allow-Methods','GET,POST,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type,X-Portfolio-Client');res.setHeader('Access-Control-Allow-Private-Network','true');res.writeHead(204).end();return;}
+  if(req.method==='OPTIONS'){res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Content-Type,X-Portfolio-Client,X-Sync-Key');res.setHeader('Access-Control-Allow-Private-Network','true');res.writeHead(204).end();return;}
   const url=new URL(req.url,`http://127.0.0.1:${PORT}`);
   const json=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
   try{
+    if(url.pathname==='/api/sync'){
+      let text='';
+      if(req.method==='PUT'){req.setEncoding('utf8');for await(const part of req){text+=part;if(text.length>MAX_BODY){json(413,{error:'Payload too large'});return;}}}
+      const r=await handleSync({method:req.method,key:req.headers['x-sync-key'],text,store:syncStore});json(r.status,r.body);return;
+    }
     if(req.method==='GET'&&url.pathname==='/api/health'){json(200,{ok:true,service:'coin-portfolio',providers:['CoinGecko','CoinPaprika','Google News','Deribit public','Hyperliquid'],accountProviders:['Hyperliquid'],updatedAt:Date.now()});return;}
     if(req.method==='POST'&&url.pathname.startsWith('/api/')){
       if(req.headers['x-portfolio-client']!=='1'){json(403,{error:'Client header required'});return;}
