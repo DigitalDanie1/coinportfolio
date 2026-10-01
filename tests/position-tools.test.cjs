@@ -6,7 +6,7 @@ const scripts=[...html.matchAll(/<script(?: src="([^"]+)")?>([\s\S]*?)<\/script>
 const nodes=new Map();
 const node=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:false,innerHTML:'',textContent:'',children:[],handlers:{},addEventListener(type,fn){this.handlers[type]=fn;},matches:()=>false});return nodes.get(id)};
 let stored=null;
-const ctx=vm.createContext({console,URL,Date,setTimeout,window:{addEventListener(){}},document:{activeElement:null,getElementById:node,querySelector:()=>({}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v}}});
+const ctx=vm.createContext({console,URL,Date,setTimeout,setInterval:()=>1,window:{addEventListener(){}},document:{activeElement:null,getElementById:node,querySelector:()=>({}),querySelectorAll:()=>[],addEventListener(){}},localStorage:{getItem:()=>stored,setItem:(k,v)=>{stored=v}}});
 for(const [,src,code] of scripts){if(src==='auto-sync.js'||code.includes("startAutomatic();"))continue;const body=src?fs.readFileSync(path.join(root,src),'utf8'):code;new vm.Script(body);vm.runInContext(body,ctx);}
 const run=s=>vm.runInContext(s,ctx);
 run('load();renderAll()');const coinCount=run('coins.length');assert.equal(node('summary-all').textContent,coinCount);
