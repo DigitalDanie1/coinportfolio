@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const panel={innerHTML:'',querySelectorAll:()=>[]};
 const coins=[['a','WIN','one'],['b','LOSE','one'],['c','OLD','one'],['d','NONE','one'],['e','ONLYUP','two'],['f','ONLYDOWN','three']].map(([id,ticker,cat])=>({id,ticker,cat,name:ticker,gecko:id}));
 const quote=(d7,d24,stale=false)=>({price_change_percentage_7d_in_currency:d7,price_change_percentage_24h:d24,stale,sparkline_in_7d:{price:[1,2,3]}});
-const ctx=vm.createContext({coins,mkt:{a:quote(10,-2),b:quote(-20,30),c:quote(1000,1000,true),d:quote(null,null),e:quote(4,4),f:quote(-5,-5)},priceSeries:d=>d?.sparkline_in_7d?.price,catList:()=>['one','two','three'].map(id=>({id})),catLabelOf:c=>c,document:{getElementById:()=>panel}});ctx.window=ctx;
+const ctx=vm.createContext({coins,mkt:{a:quote(10,-2),b:quote(-20,30),c:quote(1000,1000,true),d:quote(null,null),e:quote(4,4),f:quote(-5,-5)},priceSeries:d=>d?.sparkline_in_7d?.price,catList:()=>['one','two','three'].map(id=>({id})),catLabelOf:c=>c,priceTimes:()=>null,document:{getElementById:()=>panel,addEventListener(){}}});ctx.window=ctx;
 vm.runInContext(fs.readFileSync(require('path').join(__dirname,'../compare-chart.js'),'utf8'),ctx);
 ctx.renderCompareChart();
 const cards=()=>[...panel.innerHTML.matchAll(/<section class="category-movers">([\s\S]*?)<\/section>/g)].map(m=>m[1]);

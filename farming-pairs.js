@@ -1,10 +1,10 @@
 /* Pair records reference account legs; they do not duplicate or place orders. */
 // User-selected farming venues. Aliases cover names entered into pair legs.
 const FARMING_VENUES=[
-  {key:'risex',     name:'RiseX',       logo:'logos/risex.png',     site:'https://risex.exchange', aliases:['risex','rise x','rise'], wallet:'0xf7D7C27e92F783895ec682345365559a930E8a0d'},
+  {key:'risex',     name:'RiseX',       logo:'logos/risex.png',     site:'https://risex.exchange', aliases:['risex','rise x','rise'], wallet:'0xf7D7C27e92F783895ec682345365559a930E8a0d', tier:'헷지 전용', tgeEta:'1년+', note:'쉬운 대신 포인트는 가치 없다고 보고 헷지 다리로만 사용'},
   {key:'truenorth', name:'Truenorth',   logo:'logos/truenorth.ico', site:'https://truenorth.xyz',  aliases:['truenorth','true north','tn'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
-  {key:'arcus',     name:'Arcus',       logo:'logos/arcus.png',     site:'https://arcus.trade',    aliases:['arcus'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
-  {key:'entropy',   name:'Entropy',     logo:'logos/entropy.png',   site:'https://entropy.trade',  aliases:['entropy'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
+  {key:'arcus',     name:'Arcus',       logo:'logos/arcus.png',     site:'https://arcus.trade',    aliases:['arcus'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2', tier:'보조', tgeEta:'1년+', note:'초기 단계 · 메이저 페어 퍼프-퍼프 갭 양호, BTC 펀딩 거의 고정'},
+  {key:'entropy',   name:'Entropy',     logo:'logos/entropy.png',   site:'https://entropy.trade',  aliases:['entropy'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2', tier:'보조', tgeEta:'1년+', note:'OpenAI·Anthropic 프리IPO 퍼프 · 펀딩+갭 수익'},
   {key:'hello',     name:'Hello Trade', logo:'logos/hello.svg',     site:'https://hello.trade',    aliases:['hello trade','hellotrade','hello']},
   {key:'mnx',       name:'MNX',         logo:'logos/mnx.ico',       site:'https://mnx.fi',         aliases:['mnx']},
   {key:'pacifica',  name:'Pacifica',    logo:'logos/pacifica.png',  site:'https://pacifica.fi',    aliases:['pacifica','pacfica','pacficia'], wallet:'AQp6bfM9PTSBsNddQ8JNu2nhyA78XgTz5FeSC4xe2Ha1'},
@@ -12,7 +12,10 @@ const FARMING_VENUES=[
   {key:'quote',     name:'Quote',       logo:null,                  site:null,                     aliases:['quote'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
   {key:'n1',        name:'N1',          logo:'logos/n1.png',        site:'https://n1.xyz',         aliases:['n1','n 1','n1.xyz','01 exchange','01.xyz'], wallet:'AQp6bfM9PTSBsNddQ8JNu2nhyA78XgTz5FeSC4xe2Ha1'},
   {key:'titanx', name:'TitanX', logo:'logos/titanx.ico', site:'https://waitlist.titanx.cc/', aliases:['titanx','titan x','titan']},
-  {key:'derpetual', name:'Derpetual', logo:'logos/derpetual.ico', site:'https://www.derpetual.com/', aliases:['derpetual']}
+  {key:'derpetual', name:'Derpetual', logo:'logos/derpetual.ico', site:'https://www.derpetual.com/', aliases:['derpetual']},
+  {key:'variational', name:'Variational', logo:'logos/variational.png', site:'https://www.variational.io', aliases:['variational','variational omni','베리나','omni'], tier:'핵심', tgeEta:'TGE 임박 기대', note:'HL↔Variational XAG 갭 트레이딩으로 벌면서 파밍'},
+  {key:'robinhood',   name:'Robinhood',   logo:'logos/robinhood.png',   site:'https://robinhood.com',      aliases:['robinhood','robinhood chain','hood'], tier:'보조', tgeEta:'1년+', note:'9월 파밍 대상 · Arcus 숏과 짝으로 BTC 롱 다리'},
+  {key:'lighter',     name:'Lighter',     logo:'logos/lighter.png',     site:'https://lighter.xyz',        aliases:['lighter'], tier:'보조', tgeEta:'1년+', note:'Robinhood와 별개 거래소 · 9월 파밍 대상'}
 ];
 const MAX_FARMING_PAIRS=Math.floor(FARMING_VENUES.length/2);
 const PAIR_STRATEGY='공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토';

@@ -653,11 +653,15 @@ button.venue-chip:hover{border-color:var(--main);color:var(--text-1)}
 [data-pair-color="2"]{--pair-color:#b45309;--pair-tint:#fffbeb}
 [data-pair-color="3"]{--pair-color:#0f766e;--pair-tint:#f0fdfa}
 [data-pair-color="4"]{--pair-color:#be185d;--pair-tint:#fdf2f8}
+[data-pair-color="5"]{--pair-color:#4d7c0f;--pair-tint:#f7fee7}
+[data-pair-color="6"]{--pair-color:#c2410c;--pair-tint:#fff7ed}
 :root[data-theme="dark"] [data-pair-color="0"]{--pair-color:#93b4ff;--pair-tint:#17233d}
 :root[data-theme="dark"] [data-pair-color="1"]{--pair-color:#c4a1ff;--pair-tint:#2a1d3e}
 :root[data-theme="dark"] [data-pair-color="2"]{--pair-color:#f6c16b;--pair-tint:#332819}
 :root[data-theme="dark"] [data-pair-color="3"]{--pair-color:#6dd5c4;--pair-tint:#142e2b}
 :root[data-theme="dark"] [data-pair-color="4"]{--pair-color:#f4a1c8;--pair-tint:#351e2b}
+:root[data-theme="dark"] [data-pair-color="5"]{--pair-color:#b5e06b;--pair-tint:#232e14}
+:root[data-theme="dark"] [data-pair-color="6"]{--pair-color:#fdba74;--pair-tint:#35210f}
 .venue-chip.on[data-pair-color],.venue-chip.on[data-pair-color]:hover{border-color:var(--pair-color);background:var(--pair-tint);color:var(--text-1)}
 .venue-chip.on[data-pair-color] small{color:var(--pair-color);font-weight:650}
 .venue-chip.on[data-pair-color] .venue-mark{box-shadow:0 0 0 1px var(--pair-color)}
