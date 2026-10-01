@@ -69,9 +69,9 @@ assert(run('pnlSection()').includes('목표 $100–200/일'));
 assert.equal(run(`deletePnlEntry('${e1.id}')`),true);assert.equal(run('farmingExtra.pnl.length'),0);assert.equal(run("deletePnlEntry('x')"),false);
 
 // 플레이북: 접힘 상태 기억, 라벨
-assert(run('playbookCard()').includes('커뮤니티 메모 · 다른 사람의 경험'));assert(run('playbookCard()').includes('open'));
-run('farmingExtra.ui.playbookCollapsed=true');assert(!/<details[^>]*open/.test(run('playbookCard()')));
-run('save();farmingExtra=normFarmingExtra();load()');assert.equal(run('farmingExtra.ui.playbookCollapsed'),true);
+assert(run('playbookCard()').includes('커뮤니티 메모 · 다른 사람의 경험'));assert(!/<details[^>]*open/.test(run('playbookCard()')),'collapsed by default');
+run('farmingExtra.ui.playbookOpen=true');assert(/<details[^>]*open/.test(run('playbookCard()')));
+run('save();farmingExtra=normFarmingExtra();load()');assert.equal(run('farmingExtra.ui.playbookOpen'),true);
 // 플레이북 수치는 내 데이터에 들어가지 않는다
 assert(!JSON.stringify(run('farmingExtra')).includes('9,000'));
 

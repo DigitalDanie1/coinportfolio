@@ -29,7 +29,7 @@ run("farming[0].side='long'");assert(run('validateFarmingPair(farmingPairs[0])')
 run("farming[0].side='short';farming[0].ticker='ETH'");assert(run('validateFarmingPair(farmingPairs[0])'));assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
 run("farming[0].ticker='BTC';farmingPairs[1].short.positionId='hl-btc'");assert(run('validateFarmingPair(farmingPairs[0])'));
 run("delete farmingPairs[1].short.positionId;farming[0].closed=true");assert.equal(run('pairMetrics(farmingPairs[0]).net'),null);
-run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
+run("farming[0].closed=false;save();farmingPairs=null;load();initFarmingPairs();localStorage.setItem('coin-portfolio-farm-view','venue');setTab('farming')");assert.equal(run('farmingPairs[0].reason'),'Keep thesis');assert.equal(run('farmingPairs[0].conviction'),5);assert(el('pair-board').innerHTML.includes('LONG'));assert.equal(el('pair-board').hidden,false);
 run('farmingPairs=[];save();load();initFarmingPairs()');assert.equal(run('farmingPairs.length'),0,'unpaired books stay empty');
 run("setTab('options')");assert.equal(el('pair-board').hidden,true);
 assert.equal(run("FARMING_VENUES.length"),15,'Variational, Robinhood and Lighter bring the roster to fifteen venues');

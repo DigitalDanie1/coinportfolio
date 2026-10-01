@@ -30,7 +30,7 @@ function venueChipExtras(v){
   return (m.tier?`<small class="tier-badge ${tierClass(m.tier)}">${escapeHTML(m.tier)}</small>`:'')+(p.pct!==null?`<i class="venue-prog" style="--p:${p.pct.toFixed(0)}%" title="포인트 ${p.cur.toLocaleString()} / ${p.goal.toLocaleString()}"></i>`:'');
 }
 function venueMetaPanel(){
-  const open=farmingExtra.ui.metaOpen!==false;
+  const open=farmingExtra.ui.metaOpen===true;
   const rows=FARMING_VENUES.map(v=>{
     const m=venueMeta(v.key),p=venuePoints(v.key);
     const prog=p.goal>0?`<div class="vm-prog" title="${p.cur===null?'현재 포인트 미입력':''}"><span style="width:${(p.pct??0).toFixed(0)}%"></span></div><small>${p.cur===null?'—':p.cur.toLocaleString()} / ${p.goal.toLocaleString()}${p.pct!==null?` · ${p.pct.toFixed(0)}%`:''}</small>`:`<small class="vm-none">포인트 목표 없음</small>`;
@@ -64,8 +64,8 @@ const PLAYBOOK={
   edge:'Edge: 작성자가 뒤통수를 맞은 사례. 포인트·보상은 약속이 아니므로 한 곳에 비중을 몰지 않는다.'
 };
 function playbookCard(){
-  const open=!farmingExtra.ui.playbookCollapsed,li=a=>a.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
-  return `<details class="playbook" data-fx-details="playbook" ${open?'open':''}><summary><span class="pb-title">참고 플레이북</span><span class="pb-tag">커뮤니티 메모 · 다른 사람의 경험</span></summary><p class="pb-warn">아래 수치와 판단은 다른 사람의 글 요약입니다. 내 보유·포인트 데이터와 무관하며 참고용입니다.</p><div class="pb-grid"><section><h4>원칙</h4><ul>${li(PLAYBOOK.principles)}</ul></section><section><h4>거래소별 메모</h4><ul>${PLAYBOOK.venues.map(([n,t])=>`<li><b>${escapeHTML(n)}</b> ${escapeHTML(t)}</li>`).join('')}</ul></section><section><h4>기준선 · 주의</h4><ul><li>${escapeHTML(PLAYBOOK.lighter)}</li><li class="pb-edge">${escapeHTML(PLAYBOOK.edge)}</li></ul></section></div></details>`;
+  const open=farmingExtra.ui.playbookOpen===true,li=a=>a.map(x=>`<li>${escapeHTML(x)}</li>`).join('');
+  return `<details class="playbook" data-fx-details="playbookOpen" ${open?'open':''}><summary><span class="pb-title">참고 플레이북</span><span class="pb-tag">커뮤니티 메모 · 다른 사람의 경험</span></summary><p class="pb-warn">아래 수치와 판단은 다른 사람의 글 요약입니다. 내 보유·포인트 데이터와 무관하며 참고용입니다.</p><div class="pb-grid"><section><h4>원칙</h4><ul>${li(PLAYBOOK.principles)}</ul></section><section><h4>거래소별 메모</h4><ul>${PLAYBOOK.venues.map(([n,t])=>`<li><b>${escapeHTML(n)}</b> ${escapeHTML(t)}</li>`).join('')}</ul></section><section><h4>기준선 · 주의</h4><ul><li>${escapeHTML(PLAYBOOK.lighter)}</li><li class="pb-edge">${escapeHTML(PLAYBOOK.edge)}</li></ul></section></div></details>`;
 }
 
 // ── 일별 손익 로그
@@ -121,8 +121,9 @@ fxBoard.addEventListener('click',e=>{
 // 접힘 상태 기억 (toggle은 버블링하지 않아 캡처로 받는다).
 fxBoard.addEventListener('toggle',e=>{
   const k=e.target.dataset?.fxDetails;if(!k)return;
-  const f=k==='playbook'?'playbookCollapsed':k,v=k==='playbook'?!e.target.open:e.target.open;
-  if((k==='playbook'?!!farmingExtra.ui[f]:farmingExtra.ui[f]!==false)===v)return;
+  // pnl 카드만 기본 펼침, 나머지(플레이북·거래소 티어)는 기본 접힘.
+  const f=k,v=e.target.open;
+  if((f==='pnlOpen'?farmingExtra.ui[f]!==false:!!farmingExtra.ui[f])===v)return;
   farmingExtra.ui[f]=v;fxSave();
 },true);
 fxBoard.addEventListener('change',e=>{

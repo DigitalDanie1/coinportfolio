@@ -937,3 +937,15 @@ body.dragging-chips .chart-ticker{cursor:crosshair}
 .pnl-date{color:var(--text-2);font-variant-numeric:tabular-nums}.pnl-net{font-variant-numeric:tabular-nums;font-weight:700}
 .pnl-row .btn{min-height:28px;padding:4px 9px;font-size:.68rem}
 @media(max-width:640px){.pnl-top{grid-template-columns:1fr 1fr}.pnl-stat:last-child{grid-column:1/-1}.pnl-row{grid-template-columns:1fr auto auto;grid-template-areas:"date net btn" "what what what" "parts parts parts"}.pnl-date{grid-area:date}.pnl-what{grid-area:what}.pnl-parts{grid-area:parts}.pnl-net{grid-area:net}.pnl-row .btn{grid-area:btn}.gap-legs{grid-template-columns:1fr}}
+
+/* 파밍 하위 탭: 한 번에 한 섹션 */
+.farm-tabs{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:12px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.farm-tab{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border:0;border-radius:9px;background:transparent;color:var(--text-2);font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.farm-tab span{font-size:.72rem;font-weight:700;color:var(--text-2);background:var(--surface);border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.farm-tab:hover{color:var(--text-1)}
+.farm-tab.on{background:var(--surface);color:var(--text-1);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.farm-tab.on span{background:var(--text-1);color:var(--surface)}
+.farm-view>.oi-section{margin-bottom:0}
+#pair-board>.playbook{margin-top:24px}
+/* 코인 카테고리·검색 줄은 파밍과 무관하다 */
+body.farming-view .workspace-toolbar{display:none}
