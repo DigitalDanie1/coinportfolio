@@ -240,8 +240,11 @@ function openAutoConnections(){
     <button type="button" class="btn" onclick="exportBackup()">JSON으로 내보내기</button>
     <button type="button" class="btn" onclick="document.getElementById('backup-import-input').click()">JSON 파일 불러오기</button>
     <input type="file" id="backup-import-input" accept="application/json" hidden>
-  </div>`;
+  </div>
+  <div class="mdivider">기기 연결</div>
+  <div id="sync-panel"></div>`;
   showModal();
+  if(typeof CPSync!=='undefined')CPSync.renderPanel();
   document.querySelectorAll('[data-provider-choice]').forEach(select=>select.addEventListener('change',()=>{const c=coins.find(x=>x.id===select.dataset.providerChoice);if(c&&select.value){c.providerId=select.value;c.gecko=select.value;save();closeModal();syncAutomatic();}}));
   document.getElementById('connection-form').addEventListener('submit',e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;autoConnections.hyperliquid=document.getElementById('hl-address').value.trim();localStorage.setItem(CONNECTION_KEY,JSON.stringify(autoConnections));closeModal();syncAutomatic();});
   document.getElementById('backup-import-input').addEventListener('change',e=>{const file=e.target.files[0];if(file)importBackup(file);e.target.value='';});

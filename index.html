@@ -35,6 +35,7 @@ body{background:var(--bg);color:var(--text-1);font-family:'Inter',system-ui,sans
 header{padding:40px 0 0;display:flex;align-items:center;justify-content:space-between;gap:8px}
 header h1{font-size:1.2rem;font-weight:600;letter-spacing:-.02em;color:var(--text-1)}
 header .right{display:flex;align-items:center;gap:12px}
+#sync-status[hidden]{display:none}
 header .ts{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--text-3)}
 .btn{background:none;border:1px solid var(--border-h);color:var(--text-2);font-size:.72rem;padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s}
 .btn:hover{border-color:var(--text-3);color:var(--text-2)}
@@ -213,6 +214,7 @@ tr{animation:fadeIn .25s ease both}
       <button class="btn theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="테마 전환" title="테마 전환">☀</button>
       <button class="btn" onclick="openAutoConnections()">자동 연결</button>
       <button class="btn" onclick="refresh()">지금 갱신</button>
+      <span class="ts" id="sync-status" role="status" hidden></span>
       <span class="ts" id="clock"></span>
     </div>
   </header>
@@ -487,7 +489,7 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, farmingExtra, options, scenario, reflections, appliedImports, removedDefaults, categories, migrations })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, farmingExtra, options, scenario, reflections, appliedImports, removedDefaults, categories, migrations })); if (typeof CPSync !== 'undefined') CPSync.changed(); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
 // ═══ BACKUP: EXPORT / IMPORT ════════════
@@ -1516,6 +1518,8 @@ async function refresh() { await loadData(); updateClock(); }
 </script>
 <script src="position-tools.js"></script>
 <script src="auto-sync.js"></script>
+<script src="sync-core.js"></script>
+<script src="sync-client.js"></script>
 <script src="journal-view.js"></script>
 <script src="dex-imports.js"></script>
 <script src="farming-pairs.js"></script>
@@ -1540,6 +1544,7 @@ renderHero();
 updateClock();
 setInterval(updateClock, 30000);
 startAutomatic();
+startSync();
 </script>
 </body>
 </html>
