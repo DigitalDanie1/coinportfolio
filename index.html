@@ -399,6 +399,20 @@ let coins = [];
 let holdings = {};
 let farming = [];
 let farmingPairs = null;
+// 파밍 탭 부가 상태: 거래소 메타 덮어쓰기·포인트 목표·일별 손익·접힘 상태. 없으면 안전한 기본값.
+let farmingExtra = normFarmingExtra();
+function normFarmingExtra(x) {
+  x = x && typeof x === 'object' ? x : {};
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const num = v => v === '' || v == null || !Number.isFinite(Number(v)) ? null : Number(v);
+  const t = obj(x.target);
+  return {
+    venueMeta: obj(x.venueMeta), points: obj(x.points),
+    pnl: Array.isArray(x.pnl) ? x.pnl.filter(e => e && typeof e.date === 'string') : [],
+    target: { min: num(t.min) ?? 100, max: num(t.max) ?? 200 },
+    ui: obj(x.ui)
+  };
+}
 let options = [];
 let scenario = {text:'',updatedAt:null};
 let reflections = null;
@@ -423,6 +437,7 @@ function load() {
       holdings = d.holdings || {};
       farming = Array.isArray(d.farming) ? d.farming : [];
       farmingPairs = Array.isArray(d.farmingPairs) ? d.farmingPairs : null;
+      farmingExtra = normFarmingExtra(d.farmingExtra);
       options = Array.isArray(d.options) ? d.options : [];
       reflections = d.reflections && typeof d.reflections.text === 'string' ? d.reflections : null;
       scenario = d.scenario && typeof d.scenario.text === 'string' ? d.scenario : {text:'',updatedAt:null};
@@ -472,7 +487,7 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories, migrations })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify({ coins, holdings, farming, farmingPairs, farmingExtra, options, scenario, reflections, appliedImports, removedDefaults, categories, migrations })); return true; } catch(e) { setStatus('err','저장 공간에 접근할 수 없습니다. 입력 내용을 별도로 보관하세요.'); return false; }
 }
 
 // ═══ BACKUP: EXPORT / IMPORT ════════════
@@ -480,7 +495,7 @@ function save() {
 // portfolio to another device or keep a dated snapshot. Nothing here touches the network.
 function exportBackup() {
   const payload = { format:'coin-portfolio-backup', version:1, exportedAt:new Date().toISOString(),
-    coins, holdings, farming, farmingPairs, options, scenario, reflections, appliedImports, removedDefaults, categories };
+    coins, holdings, farming, farmingPairs, farmingExtra, options, scenario, reflections, appliedImports, removedDefaults, categories };
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -509,6 +524,7 @@ function importBackup(file) {
     holdings = data.holdings && typeof data.holdings === 'object' ? data.holdings : {};
     farming = Array.isArray(data.farming) ? data.farming : [];
     farmingPairs = Array.isArray(data.farmingPairs) ? data.farmingPairs : null;
+    farmingExtra = normFarmingExtra(data.farmingExtra);
     options = Array.isArray(data.options) ? data.options : [];
     scenario = data.scenario && typeof data.scenario.text === 'string' ? data.scenario : {text:'',updatedAt:null};
     reflections = data.reflections && typeof data.reflections.text === 'string' ? data.reflections : null;
@@ -1504,6 +1520,7 @@ async function refresh() { await loadData(); updateClock(); }
 <script src="dex-imports.js"></script>
 <script src="farming-pairs.js"></script>
 <script src="oi-strategies.js"></script>
+<script src="farming-extras.js"></script>
 <script src="sector-chart.js"></script>
 <script src="compare-chart.js"></script>
 <script src="bubble-chart.js"></script>
