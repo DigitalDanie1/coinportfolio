@@ -18,7 +18,8 @@ function venuePoints(key){
 function saveVenueMeta(key,values){
   if(!FARMING_VENUES.some(v=>v.key===key))return false;
   const tier=VENUE_TIERS.includes(values.tier)?values.tier:'';
-  farmingExtra.venueMeta[key]={tier,tgeEta:String(values.tgeEta||'').trim().slice(0,30),note:String(values.note||'').trim().slice(0,140)};
+  // 추가·숨김 표시(custom/name/site/wallet/hidden)는 그대로 두고 메모 필드만 바꾼다.
+  farmingExtra.venueMeta[key]={...(farmingExtra.venueMeta[key]||{}),tier,tgeEta:String(values.tgeEta||'').trim().slice(0,30),note:String(values.note||'').trim().slice(0,140)};
   const cur=fxNum(values.cur),goal=fxNum(values.goal);
   if(cur===null&&goal===null)delete farmingExtra.points[key];else farmingExtra.points[key]={cur,goal};
   return fxSave();

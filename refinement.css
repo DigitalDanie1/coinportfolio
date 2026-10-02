@@ -949,3 +949,14 @@ body.dragging-chips .chart-ticker{cursor:crosshair}
 #pair-board>.playbook{margin-top:24px}
 /* 코인 카테고리·검색 줄은 파밍과 무관하다 */
 body.farming-view .workspace-toolbar{display:none}
+/* 거래소 편집: 추가·삭제·되살리기 */
+.venue-roster-head{align-items:center}
+.venue-edit-toggle{margin-left:auto;min-height:32px;padding:6px 12px;font-size:.74rem}
+.venue-edit-toggle.on{background:var(--text-1);color:var(--surface);border-color:var(--text-1)}
+.venue-chip-edit{position:relative;min-height:62px;padding-right:22px}
+.venue-remove{position:absolute;top:4px;right:4px;width:22px;height:22px;border:0;border-radius:50%;background:var(--surface);color:var(--red);font-size:1rem;font-weight:700;line-height:1;cursor:pointer;box-shadow:0 0 0 1px var(--border-h)}
+.venue-remove:hover{background:var(--red);color:#fff}
+.venue-add{justify-content:flex-start;border:1px dashed var(--border-h)!important;background:transparent!important;color:var(--text-1)!important;font-weight:600}
+.venue-add .venue-mark b{font-size:1.1rem}
+.venue-hidden{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:.74rem;color:var(--text-2)}
+.venue-hidden .btn{min-height:30px;padding:5px 10px;font-size:.72rem}

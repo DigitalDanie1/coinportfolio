@@ -1,6 +1,6 @@
 /* Pair records reference account legs; they do not duplicate or place orders. */
 // User-selected farming venues. Aliases cover names entered into pair legs.
-const FARMING_VENUES=[
+const BUILTIN_VENUES=[
   {key:'risex',     name:'RiseX',       logo:'logos/risex.png',     site:'https://risex.exchange', aliases:['risex','rise x','rise'], wallet:'0xf7D7C27e92F783895ec682345365559a930E8a0d', tier:'헷지 전용', tgeEta:'1년+', note:'쉬운 대신 포인트는 가치 없다고 보고 헷지 다리로만 사용'},
   {key:'truenorth', name:'Truenorth',   logo:'logos/truenorth.ico', site:'https://truenorth.xyz',  aliases:['truenorth','true north','tn'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2'},
   {key:'arcus',     name:'Arcus',       logo:'logos/arcus.png',     site:'https://arcus.trade',    aliases:['arcus'], wallet:'0xB68d1f2bba6CC122C6E7f0B6c148E3DbF0C1ced2', tier:'보조', tgeEta:'1년+', note:'초기 단계 · 메이저 페어 퍼프-퍼프 갭 양호, BTC 펀딩 거의 고정'},
@@ -17,7 +17,66 @@ const FARMING_VENUES=[
   {key:'robinhood',   name:'Robinhood',   logo:'logos/robinhood.png',   site:'https://robinhood.com',      aliases:['robinhood','robinhood chain','hood'], tier:'보조', tgeEta:'1년+', note:'9월 파밍 대상 · Arcus 숏과 짝으로 BTC 롱 다리'},
   {key:'lighter',     name:'Lighter',     logo:'logos/lighter.png',     site:'https://lighter.xyz',        aliases:['lighter'], tier:'보조', tgeEta:'1년+', note:'Robinhood와 별개 거래소 · 9월 파밍 대상'}
 ];
-const MAX_FARMING_PAIRS=Math.floor(FARMING_VENUES.length/2);
+// 화면에 쓰는 거래소 목록 = 기본 목록 − 숨긴 것 + 직접 추가한 것.
+// 추가·삭제는 farmingExtra.venueMeta[key]에 저장되어 기기 동기화를 그대로 탄다.
+// 배열은 다른 모듈이 같은 참조를 들고 있으므로 새로 만들지 않고 내용만 바꾼다.
+const FARMING_VENUES=[];
+let MAX_FARMING_PAIRS=0,venueEditMode=false;
+function venueMetaStore(){return typeof farmingExtra!=='undefined'&&farmingExtra&&farmingExtra.venueMeta||{};}
+function venueLogoFor(site){try{return site?`https://www.google.com/s2/favicons?domain=${new URL(site).hostname}&sz=64`:null;}catch{return null;}}
+function rebuildVenues(){
+  const meta=venueMetaStore();
+  const custom=Object.entries(meta).filter(([key,m])=>m&&m.custom&&m.name&&!BUILTIN_VENUES.some(b=>b.key===key))
+    .map(([key,m])=>({key,name:m.name,logo:venueLogoFor(m.site),site:m.site||null,aliases:[m.name.toLowerCase(),key],wallet:m.wallet||'',custom:true}));
+  FARMING_VENUES.splice(0,FARMING_VENUES.length,...[...BUILTIN_VENUES,...custom].filter(v=>!meta[v.key]?.hidden));
+  MAX_FARMING_PAIRS=Math.max(1,Math.floor(FARMING_VENUES.length/2));
+}
+rebuildVenues();
+function hiddenBuiltinVenues(){const meta=venueMetaStore();return BUILTIN_VENUES.filter(v=>meta[v.key]?.hidden);}
+function saveVenueStore(){return typeof fxSave==='function'?fxSave():save();}
+function addFarmingVenue(values){
+  const name=String(values.name||'').trim().slice(0,30),site=String(values.site||'').trim(),wallet=String(values.wallet||'').trim().slice(0,200);
+  if(!name)return '거래소 이름을 입력하세요.';
+  if(site&&!/^https:\/\/[^\s]+\.[^\s]+/i.test(site))return '사이트 주소는 https:// 로 시작해야 합니다.';
+  const lower=name.toLowerCase(),meta=venueMetaStore();
+  // 숨겼던 기본 거래소를 같은 이름으로 다시 추가하면 새로 만들지 않고 되살린다.
+  const builtin=BUILTIN_VENUES.find(v=>v.aliases.includes(lower)||v.name.toLowerCase()===lower);
+  if(builtin){
+    if(!meta[builtin.key]?.hidden)return '이미 목록에 있는 거래소입니다.';
+    delete meta[builtin.key].hidden;
+  }else{
+    if(FARMING_VENUES.some(v=>v.name.toLowerCase()===lower||v.aliases.includes(lower)))return '이미 목록에 있는 거래소입니다.';
+    const slug=lower.replace(/[^a-z0-9가-힣]+/g,'-').replace(/^-|-$/g,'')||'venue';
+    let key='u-'+slug,n=2;while(meta[key]||BUILTIN_VENUES.some(v=>v.key===key))key='u-'+slug+'-'+(n++);
+    meta[key]={custom:true,name,site,wallet};
+  }
+  if(!saveVenueStore())return '저장하지 못했습니다.';
+  rebuildVenues();return '';
+}
+function removeFarmingVenue(key){
+  const v=FARMING_VENUES.find(x=>x.key===key);if(!v)return;
+  const pair=venuePair(key);
+  if(pair){pairPickerMessage=`${v.name}은(는) ${pair.name} 페어에 연결되어 있습니다. 페어를 먼저 해제하세요.`;renderPairBoard();return;}
+  const meta=venueMetaStore();
+  if(v.custom){if(!confirm(`${v.name}을(를) 삭제할까요?`))return;delete meta[key];if(typeof farmingExtra!=='undefined')delete farmingExtra.points[key];}
+  else meta[key]={...(meta[key]||{}),hidden:true};
+  if(selectedVenue===key)selectedVenue=null;
+  saveVenueStore();rebuildVenues();pairPickerMessage=`${v.name}을(를) 목록에서 뺐습니다.`;renderPairBoard();
+}
+function restoreFarmingVenue(key){
+  const meta=venueMetaStore();if(!meta[key])return;
+  delete meta[key].hidden;if(!Object.keys(meta[key]).length)delete meta[key];
+  saveVenueStore();rebuildVenues();pairPickerMessage='';renderPairBoard();
+}
+function openAddVenue(){
+  document.getElementById('modal-body').innerHTML=`<div class="modal-head"><div class="minfo"><div class="ticker">거래소 추가</div><div class="name">DEX PERP 파밍 목록에 넣을 거래소</div></div><button class="modal-close" onclick="closeModal()" aria-label="닫기">×</button></div><form id="venue-form">${field('name','거래소 이름','','text','required maxlength="30" placeholder="예: Paradex"')}${field('site','사이트 · 선택',null,'url','placeholder="https://…"')}${field('wallet','사용 지갑 · 선택',null,'text','maxlength="200" placeholder="0x… 또는 주소"')}<p class="form-help">사이트를 넣으면 로고를 자동으로 가져옵니다.</p><p id="venue-error" role="alert" class="down"></p><div class="modal-actions"><button class="btn-save" type="submit">추가</button></div></form>`;
+  showModal();
+  document.getElementById('venue-form').addEventListener('submit',e=>{
+    e.preventDefault();const err=addFarmingVenue(Object.fromEntries(new FormData(e.currentTarget)));
+    if(err){document.getElementById('venue-error').textContent=err;return;}
+    closeModal();pairPickerMessage='';renderPairBoard();
+  });
+}
 const PAIR_STRATEGY='공식 적립 조건 확인 → 양쪽 동일 기초자산 수량 설정 → 7일 포인트와 순비용 비교 → 순노출·비용 한도 초과 시 재검토';
 let selectedVenue=null,pairPickerMessage='';
 function activeFarmingPairs(){return (farmingPairs||[]).filter(p=>!p.archived);}
@@ -30,6 +89,7 @@ function venueKey(name){const value=String(name||'').trim().toLowerCase();return
 function venuePair(key){return venueFarmingPairs().find(p=>['long','short'].some(side=>venueKey(pairLeg(p,side).venue)===key));}
 function venueUsage(){return FARMING_VENUES.map(v=>({...v,active:!!venuePair(v.key)}));}
 function initFarmingPairs(){
+  rebuildVenues();
   let changed=false;
   if(farmingPairs===null){farmingPairs=[];changed=true;}
   const used=new Set();
@@ -50,10 +110,11 @@ function renderVenueRoster(){
   const venues=venueUsage(),done=venues.filter(v=>v.active).length;
   const selected=FARMING_VENUES.find(v=>v.key===selectedVenue);
   const hint=pairPickerMessage||(selected?`${selected.name} 선택됨 · 함께 묶을 두 번째 거래소를 선택하세요`:'거래소 심볼 2개를 누르면 즉시 페어가 만들어집니다.');
-  return `<div class="venue-roster" id="venue-picker"><div class="venue-roster-head"><strong>거래소 선택 · ${venueFarmingPairs().length}/${MAX_FARMING_PAIRS} 페어</strong><span>${done}/${FARMING_VENUES.length} 거래소 연결</span></div><p class="pair-picker-hint" role="status" aria-live="polite">${escapeHTML(hint)}</p><div class="venue-grid">${venues.map(v=>{
+  return `<div class="venue-roster" id="venue-picker"><div class="venue-roster-head"><strong>거래소 선택 · ${venueFarmingPairs().length}/${MAX_FARMING_PAIRS} 페어</strong><span>${done}/${FARMING_VENUES.length} 거래소 연결</span><button type="button" class="btn venue-edit-toggle${venueEditMode?' on':''}" data-venue-editmode aria-pressed="${venueEditMode}">${venueEditMode?'편집 완료':'거래소 편집'}</button></div><p class="pair-picker-hint" role="status" aria-live="polite">${escapeHTML(hint)}</p><div class="venue-grid">${venues.map(v=>{
     const pair=venuePair(v.key),chosen=selectedVenue===v.key;
+    if(venueEditMode)return `<div class="venue-chip venue-chip-edit"><span class="venue-mark">${v.logo?`<img src="${escapeHTML(v.logo)}" alt="" loading="lazy" onerror="this.remove()">`:''}<b>${escapeHTML(v.name.slice(0,2).toUpperCase())}</b></span><span>${escapeHTML(v.name)}<small>${pair?'페어 연결됨':v.custom?'직접 추가':'기본'}</small></span><button type="button" class="venue-remove" data-venue-remove="${escapeHTML(v.key)}" aria-label="${escapeHTML(v.name)} 삭제" title="삭제">×</button></div>`;
     return `<button type="button" class="venue-chip${v.active?' on':''}${chosen?' selected':''}" ${pairColorAttributes(pair)} data-venue-pick="${v.key}" aria-pressed="${chosen}" aria-label="${escapeHTML(v.name)}${pair?' · '+pairColorLabel(pair)+' · '+escapeHTML(pair.name)+'에 연결됨':' 선택'}"><span class="venue-mark">${v.logo?`<img src="${escapeHTML(v.logo)}" alt="" loading="lazy" onerror="this.remove()">`:''}<b>${escapeHTML(v.name.slice(0,2).toUpperCase())}</b></span><span>${escapeHTML(v.name)}<small>${chosen?'첫 번째 선택':pair?pairColorLabel(pair):'선택 가능'}</small><small class="venue-wallet" title="${escapeHTML(v.wallet||'')}">${v.wallet?escapeHTML(shortWallet(v.wallet)):'지갑 미등록'}</small>${typeof venueChipExtras==='function'?venueChipExtras(v):''}</span></button>`;
-  }).join('')}</div><div class="pair-picker-footer"><span>먼저 고른 거래소는 Long, 다음은 Short로 시작합니다. 방향은 페어에서 바꿀 수 있습니다.</span>${selected?'<button class="btn" data-pair-cancel>선택 취소</button>':''}</div>${typeof venueMetaPanel==='function'?venueMetaPanel():''}</div>`;
+  }).join('')}${venueEditMode?`<button type="button" class="venue-chip venue-add" data-venue-add><span class="venue-mark"><b>+</b></span><span>추가</span></button>`:''}</div>${venueEditMode&&hiddenBuiltinVenues().length?`<div class="venue-hidden"><span>뺀 거래소</span>${hiddenBuiltinVenues().map(v=>`<button type="button" class="btn" data-venue-restore="${escapeHTML(v.key)}">${escapeHTML(v.name)} 되살리기</button>`).join('')}</div>`:''}<div class="pair-picker-footer"><span>먼저 고른 거래소는 Long, 다음은 Short로 시작합니다. 방향은 페어에서 바꿀 수 있습니다.</span>${selected?'<button class="btn" data-pair-cancel>선택 취소</button>':''}</div>${typeof venueMetaPanel==='function'?venueMetaPanel():''}</div>`;
 }
 function selectFarmingVenue(key){
   initFarmingPairs();const venue=FARMING_VENUES.find(v=>v.key===key);if(!venue)return;
@@ -138,6 +199,8 @@ const addBeforePairs=addCurrentPosition;
 addCurrentPosition=function(){if(currentTab==='farming'){try{localStorage.setItem(FARM_VIEW_KEY,'venue');}catch{}selectedVenue=null;pairPickerMessage='심볼 두 개를 선택하세요.';renderPairBoard();document.getElementById('venue-picker')?.scrollIntoView({block:'center'});document.querySelector('[data-venue-pick]')?.focus();}else addBeforePairs();};
 document.getElementById('pair-board').addEventListener('click',event=>{
   const fv=event.target.closest('[data-farm-view]');if(fv){setFarmView(fv.dataset.farmView);return;}
+  const ve=event.target.closest('[data-venue-editmode],[data-venue-add],[data-venue-remove],[data-venue-restore]');
+  if(ve){if(ve.dataset.venueRemove)removeFarmingVenue(ve.dataset.venueRemove);else if(ve.dataset.venueRestore)restoreFarmingVenue(ve.dataset.venueRestore);else if('venueAdd' in ve.dataset)openAddVenue();else{venueEditMode=!venueEditMode;selectedVenue=null;pairPickerMessage='';renderPairBoard();}return;}
   const b=event.target.closest('[data-venue-pick],[data-pair-edit],[data-pair-unlink],[data-pair-swap],[data-pair-cancel]');if(!b)return;
   if(b.dataset.venuePick)selectFarmingVenue(b.dataset.venuePick);
   else if(b.dataset.pairEdit)openFarmingPair(b.dataset.pairEdit);
